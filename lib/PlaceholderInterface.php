@@ -1,4 +1,5 @@
 <?php
+
 namespace BrizyPlaceholders;
 
 interface PlaceholderInterface
@@ -17,11 +18,11 @@ interface PlaceholderInterface
      * Return the string value that will replace the placeholder name in content
      *
      * @param ContextInterface $context
-     * @param $placeholder
+     * @param ContentPlaceholder $placeholder
      *
      * @return mixed
      */
-    public function getValue(ContextInterface $context, $placeholder);
+    public function getValue(ContextInterface $context, ContentPlaceholder $placeholder);
 
 
     /**

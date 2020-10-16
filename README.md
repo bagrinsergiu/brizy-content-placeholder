@@ -13,32 +13,183 @@ Best Regards.
 
 As you can see the template above contains three placeholders *username*, *company-name* and *our-email*.
 
-This can easily achieved by replacing the string with str_replace but what if you have 100  placeholders and some of them must get some info from other resources like a DB or an API. 
+This can easily achieved by replacing the strings with str_replace but what if you have 100  placeholders and some of them must get info from resources like a DB or an API. 
 
 
 ### Architecture
 
 Few words about the classes you will work with
 
-* Registry - add more info
+#### Registry Class
+A class that manage the palceholders. You can register or obtain placeholders.
+Placeholders can be registered in groups. See the examples blow.
 
-* Replacer - add more info
+#### Placeholder Interface
+This is the placeholder class. An instance of this class must be registered in registry.
+The registry will require the placeholder name and a label to be able to obtain a list ready to be used in a select.
 
-* Placeholder - add more info
+The method getValue must return the string that will replace the placeholder. This method receive the context and the content placeholder object (An object that contain all the info  about the found placeholder)
 
-* Context - add more info
+The method support must return true if the class can handle the placeholder. 
 
+#### Context Interface
+There are cases when the placeholder will need some specific info like the current page or current request, session, etc..  all these objects must be passed in a context object.
 
-### Getting complex
-
-- Placeholders attributes
-- Repeated content
-
-### Code samples
+#### Replacer Class
+The class has only one method: replacePlaceholders. Self explanatory :).
 
 
+### Get Started
 
-   
+#### Registering a placeholder
+
+````
+$registry->registerPlaceholder(new TitlePlaceholder(),'Page Title','page_title','group_name');
+$registry->registerPlaceholder(new AuthorPlaceholder(),'Author Name','page_author','group_name');
+````
+
+
+#### Placeholders with attributes
+
+```{{placeholder_name attr="value1"}}```
+
+```
+class SamplePlaceholder extends AbstractPlaceholder
+{
+    const NAME = 'placeholder_name';
+
+    public function support($placeholderName)
+    {
+        return $placeholderName==self::NAME;
+    }
+
+    public function getValue(ContextInterface $context, ContentPlaceholder $placeholder)
+    {
+        // getting the attributes
+        $atributes = $placeholder->getAttributes();
+
+        // use the attribute
+        $vaelu = $atributes['attr'];
+
+        // other smart code useing the attribuer...
+
+        return 'placeholder_value';
+    }
+}
+
+```
+
+
+#### Repeated wit content
+Imagine you have a placeholder that must iterate thought a list of pages and repeat a chunk of html for each page.
+
+```
+{{page_loop filter="some_values"}}
+<div>
+    <h1>{{page_title}}</h2>
+    <p>{{page_excerpt}}</p>
+</div>
+{{end_page_loop}}
+```
+
+To be able to make this loop we will have to inject the repository and the replacer class.
+We assume here that placeholders page_title and page_excerpt are already registered and use the page from context to get the value.
+
+```
+class PostLoop extends AbstractPlaceholder
+{
+    const NAME = 'page_loop';
+
+    public $repository;
+
+    public $replacer;
+
+    public function __construct(PageRepository $repository, Replacer $replacer ) {
+        $this->repository = $repository;  
+        $this->replacer = $replacer;  
+    }
+
+    public function support($placeholderName)
+    {
+        return $placeholderName==self::NAME;
+    }
+
+    public function getValue(ContextInterface $context, ContentPlaceholder $placeholder)
+    {
+        // getting the attributes
+        $atributes = $placeholder->getAttributes();
+
+        // use the attribute
+        $pages = $this->repository->getPagesByFilter($atributes['filter']);
+
+        $placeholderContent = $placeholder->getContent();
+
+        $content = ob_start();
+
+        foreach($pages as $page) {
+
+            // we asume the PostLoopContext is already implemented somewhere
+            // it is just a simple class with one property.
+            $context = new PostLoopContext($page); 
+
+            $this->replacer->->replacePlaceholders($placeholderContent, $context);
+        }
+        return ob_get_clean();
+    }
+}
+```
+
+
+
+#### Placeholder class that can handle more placeholders
+There are cases when you have placeholders for a set of properties of an object.
+```
+{{ page_title }}
+{{ page_excerpt }}
+{{ page_content }}
+{{ page_author }}
+...
+```
+
+This can be implemented in a single class.
+
+```
+class PagePropertyPlaceholder extends AbstractPlaceholder
+{
+    const PREFIX = 'page_loop';
+    
+    public function support($placeholderName)
+    {
+        return strpos($placeholderName,self::PREFIX)===0;
+    }
+    
+    public function getValue(ContextInterface $context, ContentPlaceholder $placeholder)
+    {
+        $page = $context->getPage();
+    
+        $sufix = $this->getSufix($placeholder->getName());
+    
+        switch($sufix) {
+            case 'title': return $page->getTitle();
+            case 'excerpt': return $page->getExcerpt();
+            //....
+        }
+    }
+    
+    private function getSufix($placeholderName) {
+        return str_replace(self::PREFIX,'',$placeholderName);
+    } 
+}
+
+```
+
+You can register these placegolders like this:
+
+```
+$registry->registerPlaceholder(new PagePropertyPlaceholder(),'Page Title','page_title','group_name');
+$registry->registerPlaceholder(new PagePropertyPlaceholder(),'Author Name','page_author','group_name');
+```
+
   
 
 

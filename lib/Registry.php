@@ -2,6 +2,10 @@
 
 namespace BrizyPlaceholders;
 
+/**
+ * Class Registry
+ * @package BrizyPlaceholders
+ */
 class Registry implements RegistryInterface
 {
 
