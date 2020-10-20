@@ -54,14 +54,14 @@ final class Extractor
         }
 
         foreach ($matches['placeholder'] as $i => $name) {
-            $contentPlaceholders[$matches['placeholderName'][$i]] = $placeholder = new ContentPlaceholder(
+            $contentPlaceholders[$i] = $placeholder = new ContentPlaceholder(
                 $matches['placeholderName'][$i],
                 $matches['placeholder'][$i],
                 $this->getPlaceholderAttributes($matches['attributes'][$i]),
                 $matches['content'][$i]
             );
 
-            $placeholderInstances[$matches['placeholderName'][$i]] = $instance = $this->registry->getPlaceholderSupportingName(
+            $placeholderInstances[$i] = $instance = $this->registry->getPlaceholderSupportingName(
                 $placeholder->getName()
             );
 

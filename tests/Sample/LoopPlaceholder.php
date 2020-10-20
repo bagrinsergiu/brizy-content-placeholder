@@ -1,12 +1,26 @@
 <?php
+
 namespace BrizyPlaceholdersTests\Sample;
 
 use BrizyPlaceholders\ContentPlaceholder;
 use BrizyPlaceholders\ContextInterface;
+use BrizyPlaceholders\EmptyContext;
 use BrizyPlaceholders\PlaceholderInterface;
+use BrizyPlaceholders\Replacer;
 
-class TestPlaceholder implements PlaceholderInterface
+class LoopPlaceholder implements PlaceholderInterface
 {
+
+    /**
+     * @var Replacer
+     */
+    private $replacer;
+
+    public function __construct(Replacer $replacer)
+    {
+        $this->replacer = $replacer;
+    }
+
     /**
      * Returns true if the placeholder can return a value for the given placeholder name
      *
@@ -16,7 +30,7 @@ class TestPlaceholder implements PlaceholderInterface
      */
     public function support($placeholderName)
     {
-        return strpos($placeholderName, 'placeholder') === 0 && $placeholderName!=='placeholder_loop';
+        return strpos($placeholderName, 'placeholder_loop') === 0;
     }
 
 
@@ -24,13 +38,22 @@ class TestPlaceholder implements PlaceholderInterface
      * Return the string value that will replace the placeholder name in content
      *
      * @param ContextInterface $context
-     * @param ContentPlaceholder  $placeholder
+     * @param ContentPlaceholder $placeholder
      *
      * @return mixed
      */
     public function getValue(ContextInterface $context, ContentPlaceholder $placeholder)
     {
-        return 'placeholder_value';
+        $content = $placeholder->getContent();
+
+        $returnContent = '';
+        for ($i = 0; $i < 5; $i++) {
+            // here you can create a custom context special for this loop an add in it some data
+            /// that will be used in the placeholders from $content
+            $returnContent .= $this->replacer->replacePlaceholders($content, new EmptyContext());
+        }
+
+        return $returnContent;
     }
 
 

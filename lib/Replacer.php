@@ -42,10 +42,10 @@ final class Replacer
         list($contentPlaceholders, $instancePlaceholders, $contentAfterExtractor) = $extractor->extract($content);
 
         if ($contentPlaceholders && $instancePlaceholders) {
-            foreach ($contentPlaceholders as $name =>$contentPlaceholder) {
+            foreach ($contentPlaceholders as $index =>$contentPlaceholder) {
                 try {
                     $toReplace[] = $contentPlaceholder->getUid();
-                    $instancePlaceholder = $instancePlaceholders[$name];
+                    $instancePlaceholder = $instancePlaceholders[$index];
                     if ($instancePlaceholder) {
                         $toReplaceWithValues[] = $instancePlaceholder->getValue($context, $contentPlaceholder);
                     } else {
