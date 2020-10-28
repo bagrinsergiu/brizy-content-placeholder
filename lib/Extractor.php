@@ -50,7 +50,7 @@ final class Extractor
         preg_match_all($expression, $content, $matches);
 
         if (count($matches['placeholder']) == 0) {
-            return array($contentPlaceholders, $content);
+            return array($contentPlaceholders, [], $content);
         }
 
         foreach ($matches['placeholder'] as $i => $name) {

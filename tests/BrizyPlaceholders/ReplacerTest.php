@@ -11,6 +11,24 @@ use PHPUnit\Framework\TestCase;
 
 class ReplacerTest extends TestCase
 {
+
+    public function testReplaceWithoutPlaceholders()
+    {
+        $registry  = new Registry();
+        $replacer = new Replacer($registry);
+
+        $content             = "Some content";
+        $context             = new EmptyContext();
+        $contentAfterReplace = $replacer->replacePlaceholders($content, $context);
+
+        $this->assertEquals(
+            "Some content",
+            $contentAfterReplace,
+            'It should return the content with replaced placeholders'
+        );
+    }
+
+
     public function testReplaceWithoutRegisteredPlaceholders()
     {
         $registry  = new Registry();
