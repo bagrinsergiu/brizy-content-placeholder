@@ -20,8 +20,8 @@ class ExtractorTest extends TestCase
         $content = "Some content with a {{placeholder}}.";
         list($contentPlaceholders, $instancePlaceholders, $returnedContent) = $extractor->extract($content);
 
-        $this->assertCount(1, $contentPlaceholders, 'It should return 1 placeholder');
-        $this->assertCount(1, $instancePlaceholders, 'It should return 1 placeholder');
+        $this->assertCount(0, $contentPlaceholders, 'It should return 1 placeholder');
+        $this->assertCount(0, $instancePlaceholders, 'It should return 1 placeholder');
         $this->assertEquals($content, $returnedContent, 'It should return the same content');
     }
 
@@ -63,6 +63,34 @@ class ExtractorTest extends TestCase
             $returnedContent,
             'It should return the content with the placeholder replaced'
         );
+
+    }
+
+    public function placeholdersWithAttributesProvider() {
+        return [
+            ["Some content with a {{placeholder attr='1'}}.",1],
+            ["Some content with a {{placeholder attr=\"1\"}}.",1],
+            ["Some content {{placeholder attr='1'}}  with a {{placeholder attr='1'}}.",2],
+            ["Some content {{placeholder attr=\"1\"}}  with a {{placeholder attr=\"1\"}}.",2],
+            ["<img src=\"{{placeholder attr='1'}} 1x {{placeholder attr='1'}} 2x\"/>",2],
+            ['<source srcset="{{placeholder cW=&apos;555&apos; cH=&apos;548&apos;}} 1x, {{placeholder cW=&apos;1110&apos; cH=&apos;1096&apos;}} 2x" media="(min-width: 992px)">',2],
+        ];
+    }
+
+    /**
+     * @dataProvider placeholdersWithAttributesProvider
+     */
+    public function testExtractPlaceholdersWithAttributes($content,$count)
+    {
+
+        $registry = new Registry();
+        $registry->registerPlaceholder(new TestPlaceholder(), 'Placeholder', 'placeholder', 'group1');
+        $extractor = new Extractor($registry);
+
+        list($contentPlaceholders, $instancePlaceholders, $returnedContent) = $extractor->extract($content);
+
+        $this->assertCount($count, $contentPlaceholders, 'It should return 1 placeholders');
+        $this->assertCount($count, $instancePlaceholders, 'It should return 1 placeholders');
 
     }
 

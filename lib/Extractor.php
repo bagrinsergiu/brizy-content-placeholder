@@ -8,9 +8,11 @@ namespace BrizyPlaceholders;
 final class Extractor
 {
 
-    const PLACEHOLDER_REQEX = "/(?<placeholder>{{\s*(?<placeholderName>.+?)(?<attributes>(?:\s+)((?:\w+\s*=\s*(?:'|\"|\&quot;|\&apos;)(?:.[^\"']*|)(?:'|\"|\&quot;|\&apos;)\s*)*))?}}(?:(?<content>.*?){{\s*end_(\g{placeholderName})\s*}})?)/ims";
+    //const PLACEHOLDER_REQEX = "/(?<placeholder>{{\s*(?<placeholderName>.+?)(?<attributes>(?:\s+)((?:\w+\s*=\s*(?:'|\"|\&quot;|\&apos;)(?:.[^\"']*|)(?:'|\"|\&quot;|\&apos;)\s*)*))?}}(?:(?<content>.*?){{\s*end_(\g{placeholderName})\s*}})?)/ims";
+    const PLACEHOLDER_REQEX = "/(?<placeholder>{{\s*(?<placeholderName>.+?)\s*(?<attributes>\s+((?:\w+(?:\[(?:\w+)?\])?\s*=\s*(?:'|\"|\&quot;|\&apos;)(?:.[^\"']*?|)(?:'|\"|\&quot;|\&apos;)\s*)*))?}}(?:(?<content>.*?){{\s*end_(\g{placeholderName})\s*}})?)/ims";
 
-    const ATTRIBUTE_REGEX = "/(\w+)\s*=\s*(?<quote>'|\"|\&quot;|\&apos;)(.*?)(\g{quote})/mi";
+    const ATTRIBUTE_REGEX = "/((?<attr_name>\w+)(?<array>\[(?<array_key>\w+)?\])?)\s*=\s*(?<quote>'|\"|\&quot;|\&apos;)(?<attr_value>.*?)(\g{quote})/mi";
+    //const ATTRIBUTE_REGEX = "/(\w+)\s*=\s*(?<quote>'|\"|\&quot;|\&apos;)(.*?)(\g{quote})/mi";
 
     /**
      * @var RegistryInterface
@@ -54,21 +56,20 @@ final class Extractor
         }
 
         foreach ($matches['placeholder'] as $i => $name) {
+
+            $instance = $this->registry->getPlaceholderSupportingName($matches['placeholderName'][$i]);
+
+            // ignore unknown placeholders
+            if ( ! $instance) {
+                continue;
+            }
+            $placeholderInstances[$i] = $instance;
             $contentPlaceholders[$i] = $placeholder = new ContentPlaceholder(
                 $matches['placeholderName'][$i],
                 $matches['placeholder'][$i],
                 $this->getPlaceholderAttributes($matches['attributes'][$i]),
                 $matches['content'][$i]
             );
-
-            $placeholderInstances[$i] = $instance = $this->registry->getPlaceholderSupportingName(
-                $placeholder->getName()
-            );
-
-            // ignore unknown placeholders
-            if ( ! $instance) {
-                continue;
-            }
 
             $pos = strpos($content, $placeholder->getPlaceholder());
 
@@ -97,8 +98,21 @@ final class Extractor
         preg_match_all(self::ATTRIBUTE_REGEX, $attrString, $attrMatches);
 
         if (isset($attrMatches[0]) && is_array($attrMatches[0])) {
-            foreach ($attrMatches[1] as $i => $name) {
-                $attributes[$name] = $attrMatches[3][$i];
+            foreach ($attrMatches[0] as $i => $attStr) {
+                $attrName = $attrMatches['attr_name'][$i];
+                $attrValue = urldecode($attrMatches['attr_value'][$i]);
+                $isArray = $attrMatches['array'][$i]!='';
+                $arrayKey = $attrMatches['array_key'][$i];
+                // check if the attribute is an array
+                if($isArray)
+                {
+                    if($arrayKey)
+                        $attributes[$attrName][$arrayKey] = $attrValue;
+                    else
+                        $attributes[$attrName][] = $attrValue;
+                } else {
+                    $attributes[$attrName] = $attrValue;
+                }
             }
         }
 
