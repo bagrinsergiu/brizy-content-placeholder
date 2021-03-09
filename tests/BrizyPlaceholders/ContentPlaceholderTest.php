@@ -7,7 +7,6 @@ use PHPUnit\Framework\TestCase;
 
 class ContentPlaceholderTest extends TestCase
 {
-
     public function test__construct()
     {
         $attributes  = ['attr' => 1];

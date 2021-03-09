@@ -57,6 +57,17 @@ class LoopPlaceholder implements PlaceholderInterface
     }
 
 
+    public function shouldFallbackValue($value, ContextInterface $context, ContentPlaceholder $placeholder)
+    {
+        return empty($value);
+    }
+
+    public function getFallbackValue(ContextInterface $context, ContentPlaceholder $placeholder)
+    {
+        $attributes = $placeholder->getAttributes();
+        return isset($attributes[PlaceholderInterface::FALLBACK_KEY]) ? $attributes[PlaceholderInterface::FALLBACK_KEY] : '';
+    }
+
     /**
      * It should return an unique identifier of the placeholder
      *

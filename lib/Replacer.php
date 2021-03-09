@@ -35,24 +35,35 @@ final class Replacer
      */
     public function replacePlaceholders($content, ContextInterface $context)
     {
-        $toReplace           = array();
+        $toReplace = array();
         $toReplaceWithValues = array();
 
         $extractor = new Extractor($this->registry);
         list($contentPlaceholders, $instancePlaceholders, $contentAfterExtractor) = $extractor->extract($content);
 
         if ($contentPlaceholders && $instancePlaceholders) {
-            foreach ($contentPlaceholders as $index =>$contentPlaceholder) {
+            foreach ($contentPlaceholders as $index => $contentPlaceholder) {
                 try {
                     $toReplace[] = $contentPlaceholder->getUid();
+                    /**
+                     * @var PlaceholderInterface $instancePlaceholder ;
+                     */
                     $instancePlaceholder = $instancePlaceholders[$index];
                     if ($instancePlaceholder) {
-                        $toReplaceWithValues[] = $instancePlaceholder->getValue($context, $contentPlaceholder);
+                        $value = $instancePlaceholder->getValue($context, $contentPlaceholder);
+
+                        if ($instancePlaceholder->shouldFallbackValue($value, $context, $contentPlaceholder)) {
+                            $toReplaceWithValues[] = $instancePlaceholder->getFallbackValue($context, $contentPlaceholder);
+                        } else {
+                            $toReplaceWithValues[] = $value;
+                        }
                     } else {
                         $toReplaceWithValues[] = '';
                     }
 
                 } catch (\Exception $e) {
+
+                    array_pop($toReplace);
                     continue;
                 }
             }

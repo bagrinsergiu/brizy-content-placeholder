@@ -1,4 +1,5 @@
 <?php
+
 namespace BrizyPlaceholders;
 
 abstract class AbstractPlaceholder implements PlaceholderInterface
@@ -10,6 +11,18 @@ abstract class AbstractPlaceholder implements PlaceholderInterface
      */
     public function getUid()
     {
-        return md5(microtime().mt_rand(0,10000));
+        return md5(microtime() . mt_rand(0, 10000));
     }
+
+    public function shouldFallbackValue($value, ContextInterface $context, ContentPlaceholder $placeholder)
+    {
+        return empty($value);
+    }
+
+    public function getFallbackValue(ContextInterface $context, ContentPlaceholder $placeholder)
+    {
+        $attributes = $placeholder->getAttributes();
+        return isset($attributes[PlaceholderInterface::FALLBACK_KEY]) ? $attributes[PlaceholderInterface::FALLBACK_KEY] : '';
+    }
+
 }

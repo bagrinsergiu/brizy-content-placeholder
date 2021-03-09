@@ -4,6 +4,8 @@ namespace BrizyPlaceholders;
 
 interface PlaceholderInterface
 {
+    const FALLBACK_KEY = '_fallback';
+
     /**
      * Returns true if the placeholder can return a value for the given placeholder name
      *
@@ -24,6 +26,9 @@ interface PlaceholderInterface
      */
     public function getValue(ContextInterface $context, ContentPlaceholder $placeholder);
 
+    public function shouldFallbackValue($value, ContextInterface $context, ContentPlaceholder $placeholder);
+
+    public function getFallbackValue(ContextInterface $context, ContentPlaceholder $placeholder);
 
     /**
      * It should return an unique identifier of the placeholder

@@ -2,15 +2,21 @@
 
 namespace BrizyPlaceholdersTests\BrizyPlaceholders;
 
+use BrizyPlaceholders\ContentPlaceholder;
+use BrizyPlaceholders\ContextInterface;
 use BrizyPlaceholders\EmptyContext;
+use BrizyPlaceholders\PlaceholderInterface;
 use BrizyPlaceholders\Registry;
 use BrizyPlaceholders\Replacer;
 use BrizyPlaceholdersTests\Sample\LoopPlaceholder;
 use BrizyPlaceholdersTests\Sample\TestPlaceholder;
 use PHPUnit\Framework\TestCase;
+use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
 
 class ReplacerTest extends TestCase
 {
+    use ProphecyTrait;
 
     public function testReplaceWithoutPlaceholders()
     {
@@ -97,4 +103,51 @@ class ReplacerTest extends TestCase
             'It should return the content with repeated placeholder content'
         );
     }
+
+    public function testFallback()
+    {
+        $placeholderMock = $this->prophesize(PlaceholderInterface::class);
+        $placeholderMock->support('placeholder')->willReturn(true);
+
+        $placeholderMock->getValue(Argument::type(ContextInterface::class), Argument::type(ContentPlaceholder::class))->willReturn('');
+        $placeholderMock->shouldFallbackValue('',Argument::type(ContextInterface::class), Argument::type(ContentPlaceholder::class))->willReturn(true);
+        $placeholderMock->getFallbackValue(Argument::type(ContextInterface::class), Argument::type(ContentPlaceholder::class))->willReturn('fallback');
+
+
+        $registry  = new Registry();
+        $registry->registerPlaceholder($placeholderMock->reveal(),'Placeholder','placeholder','group1');
+        $replacer = new Replacer($registry);
+
+        $content             = "Some {{placeholder}} content";
+        $context             = new EmptyContext();
+        $contentAfterReplace = $replacer->replacePlaceholders($content, $context);
+
+        $this->assertEquals(
+            "Some fallback content",
+            $contentAfterReplace,
+            'It should return the content with replaced placeholders'
+        );
+    }
+
+    public function testFallbackAttribute()
+    {
+        $mock = $this->createPartialMock(TestPlaceholder::class,['getValue']);
+        $mock->method('getValue')->willReturn('');
+
+        $registry  = new Registry();
+        $registry->registerPlaceholder($mock,'Placeholder','placeholder','group1');
+        $replacer = new Replacer($registry);
+
+        $content             = "Some content {{placeholder _fallback='fallback1'}} and {{placeholder _fallback='fallback2'}}.";
+        $context             = new EmptyContext();
+        $contentAfterReplace = $replacer->replacePlaceholders($content, $context);
+
+        $this->assertEquals(
+            "Some content fallback1 and fallback2.",
+            $contentAfterReplace,
+            'It should return the content with repeated placeholder content'
+        );
+    }
+
+
 }
