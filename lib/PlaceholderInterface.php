@@ -24,6 +24,9 @@ interface PlaceholderInterface
      */
     public function getValue(ContextInterface $context, ContentPlaceholder $placeholder);
 
+    public function shouldFallbackValue($value, ContextInterface $context, ContentPlaceholder $placeholder);
+
+    public function getFallbackValue(ContextInterface $context, ContentPlaceholder $placeholder);
 
     /**
      * It should return an unique identifier of the placeholder
