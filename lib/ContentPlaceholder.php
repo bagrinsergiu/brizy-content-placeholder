@@ -35,8 +35,6 @@ final class ContentPlaceholder
     protected $content;
 
     /**
-     * BrizyPro_Content_ContentPlaceholder constructor.
-     *
      * @param $name
      * @param $placeholder
      * @param null $attributes
