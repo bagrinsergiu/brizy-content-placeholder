@@ -20,11 +20,11 @@ class ReplacerTest extends TestCase
 
     public function testReplaceWithoutPlaceholders()
     {
-        $registry  = new Registry();
+        $registry = new Registry();
         $replacer = new Replacer($registry);
 
-        $content             = "Some content";
-        $context             = new EmptyContext();
+        $content = "Some content";
+        $context = new EmptyContext();
         $contentAfterReplace = $replacer->replacePlaceholders($content, $context);
 
         $this->assertEquals(
@@ -37,11 +37,11 @@ class ReplacerTest extends TestCase
 
     public function testReplaceWithoutRegisteredPlaceholders()
     {
-        $registry  = new Registry();
+        $registry = new Registry();
         $replacer = new Replacer($registry);
 
-        $content             = "Some content with a {{placeholder}}.";
-        $context             = new EmptyContext();
+        $content = "Some content with a {{placeholder}}.";
+        $context = new EmptyContext();
         $contentAfterReplace = $replacer->replacePlaceholders($content, $context);
 
         $this->assertEquals(
@@ -53,12 +53,12 @@ class ReplacerTest extends TestCase
 
     public function testReplaceWithRegisteredPlaceholders()
     {
-        $registry  = new Registry();
-        $registry->registerPlaceholder(new TestPlaceholder(),'Placeholder','placeholder','group1');
+        $registry = new Registry();
+        $registry->registerPlaceholder(new TestPlaceholder());
         $replacer = new Replacer($registry);
 
-        $content             = "Some content with {{placeholder}} and {{placeholder_234}}.";
-        $context             = new EmptyContext();
+        $content = "Some content with {{placeholder}} and {{placeholder_234}}.";
+        $context = new EmptyContext();
         $contentAfterReplace = $replacer->replacePlaceholders($content, $context);
 
         $this->assertEquals(
@@ -70,13 +70,13 @@ class ReplacerTest extends TestCase
 
     public function testReplaceWithLoopPlaceholder()
     {
-        $registry  = new Registry();
-        $registry->registerPlaceholder(new TestPlaceholder(),'Placeholder','placeholder','group1');
+        $registry = new Registry();
+        $registry->registerPlaceholder(new TestPlaceholder());
         $replacer = new Replacer($registry);
-        $registry->registerPlaceholder(new LoopPlaceholder($replacer),'Placeholder','placeholder_loop','group1');
+        $registry->registerPlaceholder(new LoopPlaceholder($replacer));
 
-        $content             = "{{placeholder_loop}}{{placeholder}}{{end_placeholder_loop}}";
-        $context             = new EmptyContext();
+        $content = "{{placeholder_loop}}{{placeholder}}{{end_placeholder_loop}}";
+        $context = new EmptyContext();
         $contentAfterReplace = $replacer->replacePlaceholders($content, $context);
 
         $this->assertEquals(
@@ -89,12 +89,12 @@ class ReplacerTest extends TestCase
 
     public function testReplaceWithRepeatingPlaceholders()
     {
-        $registry  = new Registry();
-        $registry->registerPlaceholder(new TestPlaceholder(),'Placeholder','placeholder','group1');
+        $registry = new Registry();
+        $registry->registerPlaceholder(new TestPlaceholder());
         $replacer = new Replacer($registry);
 
-        $content             = "Some content {{placeholder}} and {{placeholder}}.";
-        $context             = new EmptyContext();
+        $content = "Some content {{placeholder}} and {{placeholder}}.";
+        $context = new EmptyContext();
         $contentAfterReplace = $replacer->replacePlaceholders($content, $context);
 
         $this->assertEquals(
@@ -110,16 +110,16 @@ class ReplacerTest extends TestCase
         $placeholderMock->support('placeholder')->willReturn(true);
 
         $placeholderMock->getValue(Argument::type(ContextInterface::class), Argument::type(ContentPlaceholder::class))->willReturn('');
-        $placeholderMock->shouldFallbackValue('',Argument::type(ContextInterface::class), Argument::type(ContentPlaceholder::class))->willReturn(true);
+        $placeholderMock->shouldFallbackValue('', Argument::type(ContextInterface::class), Argument::type(ContentPlaceholder::class))->willReturn(true);
         $placeholderMock->getFallbackValue(Argument::type(ContextInterface::class), Argument::type(ContentPlaceholder::class))->willReturn('fallback');
 
 
-        $registry  = new Registry();
-        $registry->registerPlaceholder($placeholderMock->reveal(),'Placeholder','placeholder','group1');
+        $registry = new Registry();
+        $registry->registerPlaceholder($placeholderMock->reveal());
         $replacer = new Replacer($registry);
 
-        $content             = "Some {{placeholder}} content";
-        $context             = new EmptyContext();
+        $content = "Some {{placeholder}} content";
+        $context = new EmptyContext();
         $contentAfterReplace = $replacer->replacePlaceholders($content, $context);
 
         $this->assertEquals(
@@ -131,15 +131,15 @@ class ReplacerTest extends TestCase
 
     public function testFallbackAttribute()
     {
-        $mock = $this->createPartialMock(TestPlaceholder::class,['getValue']);
+        $mock = $this->createPartialMock(TestPlaceholder::class, ['getValue']);
         $mock->method('getValue')->willReturn('');
 
-        $registry  = new Registry();
-        $registry->registerPlaceholder($mock,'Placeholder','placeholder','group1');
+        $registry = new Registry();
+        $registry->registerPlaceholder($mock);
         $replacer = new Replacer($registry);
 
-        $content             = "Some content {{placeholder _fallback='fallback1'}} and {{placeholder _fallback='fallback2'}}.";
-        $context             = new EmptyContext();
+        $content = "Some content {{placeholder _fallback='fallback1'}} and {{placeholder _fallback='fallback2'}}.";
+        $context = new EmptyContext();
         $contentAfterReplace = $replacer->replacePlaceholders($content, $context);
 
         $this->assertEquals(
@@ -149,5 +149,27 @@ class ReplacerTest extends TestCase
         );
     }
 
+    public function testReplaceWithExtractedData()
+    {
+        $contentPlaceholder = new ContentPlaceholder('placeholder', 'placeholder', ['_fallback' => 'fallback1']);
+        $placeholder = new TestPlaceholder();
+        $uid = $contentPlaceholder->getUid();
+
+        $content = "Some content $uid and $uid.";
+        $contentPlaceholders = [$contentPlaceholder];
+        $instancePlaceholders = [$placeholder];
+
+        $registry = new Registry();
+        $registry->registerPlaceholder(new TestPlaceholder());
+
+        $replacer = new Replacer($registry);
+
+        $context = new EmptyContext();
+
+        $contentAfterReplace = $replacer->replaceWithExtractedData($contentPlaceholders, $instancePlaceholders, $content, $context);
+
+        $this->assertEquals("Some content placeholder_value and placeholder_value.", $contentAfterReplace, 'It should replace all placeholders');
+
+    }
 
 }

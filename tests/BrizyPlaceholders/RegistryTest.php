@@ -12,33 +12,30 @@ class RegistryTest extends TestCase
     public function test__construct()
     {
         $registry = new Registry();
-        $this->assertIsArray($registry->getGroupedPlaceholders(), 'It should return an array');
-        $this->assertEmpty($registry->getGroupedPlaceholders(), 'It should return an empty array');
+        $this->assertIsArray($registry->getPlaceholders(), 'It should return an array');
     }
 
     public function testRegisterPlaceholder()
     {
         $registry    = new Registry();
-        $placeholder = $this->createMock(PlaceholderInterface::class);
-        $placeholder->expects($this->any())
+        $placeholder1 = $this->createMock(PlaceholderInterface::class);
+        $placeholder1->expects($this->any())
                     ->method('support')
                     ->with('placeholder1')
                     ->willReturn(true);
 
-        $registry->registerPlaceholder($placeholder, 'Label1', 'placeholder1', 'group1');
-        $registry->registerPlaceholder($placeholder, 'Label2', 'placeholder2', 'group1');
-        $registry->registerPlaceholder($placeholder, 'Label3', 'placeholder4', 'group2');
-        $registry->registerPlaceholder($placeholder, 'Label4', 'placeholder5', 'group2');
+        $placeholder2 = $this->createMock(PlaceholderInterface::class);
+        $placeholder2->expects($this->any())
+                    ->method('support')
+                    ->with('placeholder2')
+                    ->willReturn(true);
 
-        $all = $registry->getAllPlaceholders();
+        $registry->registerPlaceholder($placeholder1);
+        $registry->registerPlaceholder($placeholder2);
 
-        $this->assertCount(4, $all, 'It should return 4 placeholders');
+        $all = $registry->getPlaceholders();
 
-        $grouped = $registry->getGroupedPlaceholders();
-
-        $this->assertCount(2, $grouped, 'It should contain only two grpups');
-        $this->assertArrayHasKey('group1', $grouped, 'It should contain group1');
-        $this->assertArrayHasKey('group2', $grouped, 'It should contain group2');
+        $this->assertCount(2, $all, 'It should return 4 placeholders');
     }
 
 
@@ -47,16 +44,18 @@ class RegistryTest extends TestCase
         $registry     = new Registry();
         $placeholder1 = $this->createMock(PlaceholderInterface::class);
         $placeholder1->expects($this->any())
-                     ->method('support')
-                     ->willReturn(true);
+            ->method('support')
+            ->with('placeholder1')
+            ->willReturn(true);
+
         $placeholder2 = $this->createMock(PlaceholderInterface::class);
         $placeholder2->expects($this->any())
-                     ->method('support')
-                     ->willReturn(false);
+            ->method('support')
+            ->with('placeholder1')
+            ->willReturn(false);
 
-        $registry->registerPlaceholder($placeholder2, 'Label1', 'placeholder1', 'group1');
-        $registry->registerPlaceholder($placeholder1, 'Label2', 'placeholder2', 'group2');
-        $registry->registerPlaceholder($placeholder2, 'Label3', 'placeholder3', 'group1');
+        $registry->registerPlaceholder($placeholder2);
+        $registry->registerPlaceholder($placeholder1);
 
         $aplaceholder = $registry->getPlaceholderSupportingName('placeholder1');
 

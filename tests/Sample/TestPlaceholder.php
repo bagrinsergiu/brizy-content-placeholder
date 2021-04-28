@@ -51,6 +51,6 @@ class TestPlaceholder implements PlaceholderInterface
      */
     public function getUid()
     {
-        return md5(microtime());
+        return md5(serialize($this));
     }
 }

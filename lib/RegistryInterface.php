@@ -13,26 +13,14 @@ interface RegistryInterface
      *
      * @return mixed
      */
-    public function registerPlaceholder(PlaceholderInterface $instance, $label, $placeholderName, $groupName);
+    public function registerPlaceholder(PlaceholderInterface $instance);
 
     /**
      * Return all placeholders
      *
      * @return PlaceholderInterface[]
      */
-    public function getAllPlaceholders();
-
-    /**
-     * @return array
-     */
-    public function getGroupedPlaceholders();
-
-    /**
-     * @param $groupName
-     *
-     * @return PlaceholderInterface[]
-     */
-    public function getPlaceholdersByGroup($groupName);
+    public function getPlaceholders();
 
     /**
      * It will return first placeholder that supports the $name;

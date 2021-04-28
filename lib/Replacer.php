@@ -35,37 +35,46 @@ final class Replacer
      */
     public function replacePlaceholders($content, ContextInterface $context)
     {
-        $toReplace = array();
-        $toReplaceWithValues = array();
-
         $extractor = new Extractor($this->registry);
         list($contentPlaceholders, $instancePlaceholders, $contentAfterExtractor) = $extractor->extract($content);
 
         if ($contentPlaceholders && $instancePlaceholders) {
-            foreach ($contentPlaceholders as $index => $contentPlaceholder) {
-                try {
-                    $toReplace[] = $contentPlaceholder->getUid();
-                    /**
-                     * @var PlaceholderInterface $instancePlaceholder ;
-                     */
-                    $instancePlaceholder = $instancePlaceholders[$index];
-                    if ($instancePlaceholder) {
-                        $value = $instancePlaceholder->getValue($context, $contentPlaceholder);
+            $content = $this->replaceWithExtractedData($contentPlaceholders, $instancePlaceholders, $contentAfterExtractor, $context);
+        }
+        return $content;
+    }
 
-                        if ($instancePlaceholder->shouldFallbackValue($value, $context, $contentPlaceholder)) {
-                            $toReplaceWithValues[] = $instancePlaceholder->getFallbackValue($context, $contentPlaceholder);
-                        } else {
-                            $toReplaceWithValues[] = $value;
-                        }
+    /**
+     * @param ContentPlaceholder[] $contentPlaceholders
+     * @param PlaceholderInterface[] $instancePlaceholders
+     * @param string $contentAfterExtractor
+     */
+    public function replaceWithExtractedData(array $contentPlaceholders, array $instancePlaceholders, $contentAfterExtractor, ContextInterface $context)
+    {
+        $toReplace = array();
+        $toReplaceWithValues = array();
+        foreach ($contentPlaceholders as $index => $contentPlaceholder) {
+            try {
+                $toReplace[] = $contentPlaceholder->getUid();
+                /**
+                 * @var PlaceholderInterface $instancePlaceholder ;
+                 */
+                $instancePlaceholder = $instancePlaceholders[$index];
+                if ($instancePlaceholder) {
+                    $value = $instancePlaceholder->getValue($context, $contentPlaceholder);
+
+                    if ($instancePlaceholder->shouldFallbackValue($value, $context, $contentPlaceholder)) {
+                        $toReplaceWithValues[] = $instancePlaceholder->getFallbackValue($context, $contentPlaceholder);
                     } else {
-                        $toReplaceWithValues[] = '';
+                        $toReplaceWithValues[] = $value;
                     }
-
-                } catch (\Exception $e) {
-
-                    array_pop($toReplace);
-                    continue;
+                } else {
+                    $toReplaceWithValues[] = '';
                 }
+
+            } catch (\Exception $e) {
+                array_pop($toReplace);
+                continue;
             }
         }
 

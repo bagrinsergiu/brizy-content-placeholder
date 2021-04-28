@@ -33,7 +33,6 @@ class LoopPlaceholder implements PlaceholderInterface
         return strpos($placeholderName, 'placeholder_loop') === 0;
     }
 
-
     /**
      * Return the string value that will replace the placeholder name in content
      *
@@ -55,7 +54,6 @@ class LoopPlaceholder implements PlaceholderInterface
 
         return $returnContent;
     }
-
 
     public function shouldFallbackValue($value, ContextInterface $context, ContentPlaceholder $placeholder)
     {

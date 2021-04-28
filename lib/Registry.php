@@ -9,12 +9,10 @@ namespace BrizyPlaceholders;
 class Registry implements RegistryInterface
 {
 
-    public $placeholders;
-
-    public function __construct()
-    {
-        $this->placeholders = [];
-    }
+    /**
+     * @var PlaceholderInterface[]
+     */
+    public $placeholders = [];
 
     /**
      * @param PlaceholderInterface $instance
@@ -24,34 +22,15 @@ class Registry implements RegistryInterface
      *
      * @return mixed|void
      */
-    public function registerPlaceholder(PlaceholderInterface $instance, $label, $placeholderName, $groupName)
+    public function registerPlaceholder(PlaceholderInterface $instance)
     {
-        $this->placeholders[$groupName][] = [
-            'label'       => $label,
-            'placeholder' => $placeholderName,
-            'instance'    => $instance,
-        ];
+        $this->placeholders[] = $instance;
     }
 
     /**
      * @inheritDoc
      */
-    public function getAllPlaceholders()
-    {
-        $all = [];
-        foreach ($this->placeholders as $groupKey => $group) {
-            foreach ($group as $aplaceholder) {
-                $all[] = $aplaceholder;
-            }
-        }
-
-        return $all;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function getGroupedPlaceholders()
+    public function getPlaceholders()
     {
         return $this->placeholders;
     }
@@ -59,23 +38,11 @@ class Registry implements RegistryInterface
     /**
      * @inheritDoc
      */
-    public function getPlaceholdersByGroup($groupName)
-    {
-        if (isset($this->placeholders[$groupName])) {
-            return $this->placeholders[$groupName];
-        }
-    }
-
-    /**
-     * @inheritDoc
-     */
     public function getPlaceholderSupportingName($name)
     {
-        foreach ($this->placeholders as $groupKey => $group) {
-            foreach ($group as $aplaceholder) {
-                if ($aplaceholder['instance']->support($name)) {
-                    return $aplaceholder['instance'];
-                }
+        foreach ($this->placeholders as $aplaceholder) {
+            if ($aplaceholder->support($name)) {
+                return $aplaceholder;
             }
         }
     }
