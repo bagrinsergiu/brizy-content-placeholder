@@ -169,7 +169,6 @@ class ReplacerTest extends TestCase
         $contentAfterReplace = $replacer->replaceWithExtractedData($contentPlaceholders, $instancePlaceholders, $content, $context);
 
         $this->assertEquals("Some content placeholder_value and placeholder_value.", $contentAfterReplace, 'It should replace all placeholders');
-
     }
 
 }

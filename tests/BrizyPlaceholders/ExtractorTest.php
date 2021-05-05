@@ -14,7 +14,7 @@ class ExtractorTest extends TestCase
 
     public function testExtractWithoutRegisteredPlaceholders()
     {
-        $registry  = new Registry();
+        $registry = new Registry();
         $extractor = new Extractor($registry);
 
         $content = "Some content with a {{placeholder}}.";
@@ -28,7 +28,7 @@ class ExtractorTest extends TestCase
     public function testExtract()
     {
         $registry = new Registry();
-        $registry->registerPlaceholder(new TestPlaceholder(), 'Placeholder', 'placeholder', 'group1');
+        $registry->registerPlaceholder(new TestPlaceholder());
         $extractor = new Extractor($registry);
 
         $content = "Some content with a {{placeholder}}.";
@@ -48,9 +48,9 @@ class ExtractorTest extends TestCase
     {
 
         $registry = new Registry();
-        $registry->registerPlaceholder(new TestPlaceholder(), 'Placeholder', 'placeholder', 'group1');
+        $registry->registerPlaceholder(new TestPlaceholder());
         $replacer = new Replacer($registry);
-        $registry->registerPlaceholder(new LoopPlaceholder($replacer), 'Placeholder', 'placeholder_loop', 'group1');
+        $registry->registerPlaceholder(new LoopPlaceholder($replacer));
         $extractor = new Extractor($registry);
 
         $content = "Some content with a {{placeholder_loop}}{{placeholder}}{{end_placeholder_loop}}.";
@@ -66,25 +66,26 @@ class ExtractorTest extends TestCase
 
     }
 
-    public function placeholdersWithAttributesProvider() {
+    public function placeholdersWithAttributesProvider()
+    {
         return [
-            ["Some content with a {{placeholder attr='1'}}.",1],
-            ["Some content with a {{placeholder attr=\"1\"}}.",1],
-            ["Some content {{placeholder attr='1'}}  with a {{placeholder attr='1'}}.",2],
-            ["Some content {{placeholder attr=\"1\"}}  with a {{placeholder attr=\"1\"}}.",2],
-            ["<img src=\"{{placeholder attr='1'}} 1x {{placeholder attr='1'}} 2x\"/>",2],
-            ['<source srcset="{{placeholder cW=&apos;555&apos; cH=&apos;548&apos;}} 1x, {{placeholder cW=&apos;1110&apos; cH=&apos;1096&apos;}} 2x" media="(min-width: 992px)">',2],
+            ["Some content with a {{placeholder attr='1'}}.", 1],
+            ["Some content with a {{placeholder attr=\"1\"}}.", 1],
+            ["Some content {{placeholder attr='1'}}  with a {{placeholder attr='1'}}.", 2],
+            ["Some content {{placeholder attr=\"1\"}}  with a {{placeholder attr=\"1\"}}.", 2],
+            ["<img src=\"{{placeholder attr='1'}} 1x {{placeholder attr='1'}} 2x\"/>", 2],
+            ['<source srcset="{{placeholder cW=&apos;555&apos; cH=&apos;548&apos;}} 1x, {{placeholder cW=&apos;1110&apos; cH=&apos;1096&apos;}} 2x" media="(min-width: 992px)">', 2],
         ];
     }
 
     /**
      * @dataProvider placeholdersWithAttributesProvider
      */
-    public function testExtractPlaceholdersWithAttributes($content,$count)
+    public function testExtractPlaceholdersWithAttributes($content, $count)
     {
 
         $registry = new Registry();
-        $registry->registerPlaceholder(new TestPlaceholder(), 'Placeholder', 'placeholder', 'group1');
+        $registry->registerPlaceholder(new TestPlaceholder());
         $extractor = new Extractor($registry);
 
         list($contentPlaceholders, $instancePlaceholders, $returnedContent) = $extractor->extract($content);
@@ -97,7 +98,7 @@ class ExtractorTest extends TestCase
     public function testExtractWithRepeatingPlaceholders()
     {
         $registry = new Registry();
-        $registry->registerPlaceholder(new TestPlaceholder(), 'Placeholder', 'placeholder', 'group1');
+        $registry->registerPlaceholder(new TestPlaceholder());
         $extractor = new Extractor($registry);
 
         $content = "Some content with a {{placeholder}} {{placeholder}} {{placeholder}}.";
@@ -114,15 +115,15 @@ class ExtractorTest extends TestCase
 
     public function testStripPlaceholders()
     {
-        $registry  = new Registry();
+        $registry = new Registry();
         $extractor = new Extractor($registry);
 
-        $content         = "Some content with a {{placeholder}}.";
+        $content = "Some content with a {{placeholder}}.";
         $strippedContent = $extractor->stripPlaceholders($content);
         $this->assertStringNotContainsString('{{placeholder}}', $strippedContent, 'It should not contain any placeholders');
 
 
-        $content         = "Some content.";
+        $content = "Some content.";
         $strippedContent = $extractor->stripPlaceholders($content);
         $this->assertEquals($content, $strippedContent, 'It should not modify the content');
     }

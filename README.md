@@ -21,16 +21,14 @@ This can easily achieved by replacing the strings with str_replace but what if y
 Few words about the classes you will work with
 
 #### Registry Class
-A class that manage the palceholders. You can register or obtain placeholders.
-Placeholders can be registered in groups. See the examples blow.
+A class that manage the palceholders. You can register or obtain placeholders. See the examples blow.
 
 #### Placeholder Interface
-This is the placeholder class. An instance of this class must be registered in registry.
-The registry will require the placeholder name and a label to be able to obtain a list ready to be used in a select.
+All placeholders must implement this interface.
 
-The method getValue must return the string that will replace the placeholder. This method receive the context and the content placeholder object (An object that contain all the info  about the found placeholder)
+The `getValue` method must return the string that will replace the placeholder. This method receive a context and the content placeholder object (An object that contain all the info  about the placeholder found in the original content)
 
-The method support must return true if the class can handle the placeholder. 
+The `support` method must return true if the class can handle the placeholder. 
 
 #### Context Interface
 There are cases when the placeholder will need some specific info like the current page or current request, session, etc..  all these objects must be passed in a context object.
@@ -44,8 +42,8 @@ The class has only one method: replacePlaceholders. Self explanatory :).
 #### Registering a placeholder
 
 ````
-$registry->registerPlaceholder(new TitlePlaceholder(),'Page Title','page_title','group_name');
-$registry->registerPlaceholder(new AuthorPlaceholder(),'Author Name','page_author','group_name');
+$registry->registerPlaceholder(new TitlePlaceholder());
+$registry->registerPlaceholder(new AuthorPlaceholder());
 ````
 
 
@@ -69,9 +67,9 @@ class SamplePlaceholder extends AbstractPlaceholder
         $atributes = $placeholder->getAttributes();
 
         // use the attribute
-        $vaelu = $atributes['attr'];
+        $value = $atributes['attr'];
 
-        // other smart code useing the attribuer...
+        // smart code goes here
 
         return 'placeholder_value';
     }
@@ -142,7 +140,7 @@ class PostLoop extends AbstractPlaceholder
 
 
 #### Placeholder class that can handle more placeholders
-There are cases when you have placeholders for a set of properties of an object.
+There are cases when you have placeholders for a set of properties of a class.
 ```
 {{ page_title }}
 {{ page_excerpt }}
@@ -186,8 +184,8 @@ class PagePropertyPlaceholder extends AbstractPlaceholder
 You can register these placegolders like this:
 
 ```
-$registry->registerPlaceholder(new PagePropertyPlaceholder(),'Page Title','page_title','group_name');
-$registry->registerPlaceholder(new PagePropertyPlaceholder(),'Author Name','page_author','group_name');
+$registry->registerPlaceholder(new PagePropertyPlaceholder());
+$registry->registerPlaceholder(new PagePropertyPlaceholder());
 ```
 
   
