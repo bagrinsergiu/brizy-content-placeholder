@@ -40,19 +40,21 @@ final class ContentPlaceholder
      * @param null $attributes
      * @param null $content
      */
-    public function __construct( $name, $placeholder, $attributes = null, $content = null ) {
+    public function __construct($name, $placeholder, $attributes = null, $content = null)
+    {
 
-        $this->setUid( md5(microtime().mt_rand( 0, PHP_INT_MAX ).$placeholder ) );
-        $this->setPlaceholder( $placeholder );
-        $this->setName( $name );
-        $this->setAttributes( $attributes );
-        $this->setContent( $content );
+        $this->setUid(md5(microtime() . mt_rand(0, PHP_INT_MAX) . $placeholder));
+        $this->setPlaceholder($placeholder);
+        $this->setName($name);
+        $this->setAttributes($attributes);
+        $this->setContent($content);
     }
 
     /**
      * @return string
      */
-    public function getUid() {
+    public function getUid()
+    {
         return $this->uid;
     }
 
@@ -61,7 +63,8 @@ final class ContentPlaceholder
      *
      * @return $this
      */
-    public function setUid( $uid ) {
+    public function setUid($uid)
+    {
         $this->uid = $uid;
 
         return $this;
@@ -70,7 +73,8 @@ final class ContentPlaceholder
     /**
      * @return string
      */
-    public function getPlaceholder() {
+    public function getPlaceholder()
+    {
         return $this->placeholder;
     }
 
@@ -79,7 +83,8 @@ final class ContentPlaceholder
      *
      * @return $this
      */
-    public function setPlaceholder( $placeholder ) {
+    public function setPlaceholder($placeholder)
+    {
         $this->placeholder = $placeholder;
 
         return $this;
@@ -88,7 +93,8 @@ final class ContentPlaceholder
     /**
      * @return string
      */
-    public function getName() {
+    public function getName()
+    {
         return $this->name;
     }
 
@@ -97,7 +103,8 @@ final class ContentPlaceholder
      *
      * @return $this
      */
-    public function setName( $name ) {
+    public function setName($name)
+    {
         $this->name = $name;
 
         return $this;
@@ -106,7 +113,8 @@ final class ContentPlaceholder
     /**
      * @return mixed
      */
-    public function getAttributes() {
+    public function getAttributes()
+    {
         return $this->attributes;
     }
 
@@ -115,16 +123,36 @@ final class ContentPlaceholder
      *
      * @return $this
      */
-    public function setAttributes( $attributes ) {
+    public function setAttributes($attributes)
+    {
         $this->attributes = $attributes;
 
         return $this;
     }
 
     /**
+     * @param $name
+     *
+     * @return null
+     */
+    public function getAttribute($name, $thowIfNotFound = false)
+    {
+        if (isset($this->attributes[$name])) {
+            return $this->attributes[$name];
+        }
+
+        if ($thowIfNotFound) {
+            throw new \Exception("The is not attribute '{$name}' set.");
+        }
+
+        return null;
+    }
+
+    /**
      * @return string
      */
-    public function getContent() {
+    public function getContent()
+    {
         return $this->content;
     }
 
@@ -133,7 +161,8 @@ final class ContentPlaceholder
      *
      * @return $this
      */
-    public function setContent( $content ) {
+    public function setContent($content)
+    {
         $this->content = $content;
 
         return $this;
