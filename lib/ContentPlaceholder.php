@@ -51,6 +51,14 @@ final class ContentPlaceholder
     }
 
     /**
+     * @return null
+     * @throws \Exception
+     */
+    public function getId() {
+        return $this->getAttribute( 'id' );
+    }
+
+    /**
      * @return string
      */
     public function getUid()
