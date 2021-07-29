@@ -31,12 +31,14 @@ final class Replacer
      * @param $content
      * @param ContextInterface $context
      *
-     * @return string|string[]
+     *$subContext @return string|string[]
      */
     public function replacePlaceholders($content, ContextInterface $context)
     {
         $extractor = new Extractor($this->registry);
         list($contentPlaceholders, $instancePlaceholders, $contentAfterExtractor) = $extractor->extract($content);
+
+        $context->afterExtract($contentPlaceholders, $instancePlaceholders, $contentAfterExtractor);
 
         if ($contentPlaceholders && $instancePlaceholders) {
             $content = $this->replaceWithExtractedData($contentPlaceholders, $instancePlaceholders, $contentAfterExtractor, $context);

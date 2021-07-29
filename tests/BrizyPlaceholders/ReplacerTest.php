@@ -34,6 +34,23 @@ class ReplacerTest extends TestCase
         );
     }
 
+   public function testAfterExtractCall()
+    {
+        $registry = new Registry();
+        $replacer = new Replacer($registry);
+
+        $content = "Some content";
+        $context = $this->prophesize(ContextInterface::class);
+        $context->afterExtract([],[],$content)->shouldBeCalled();
+        $contentAfterReplace = $replacer->replacePlaceholders($content, $context->reveal());
+
+        $this->assertEquals(
+            "Some content",
+            $contentAfterReplace,
+            'It should return the content with replaced placeholders'
+        );
+    }
+
 
     public function testReplaceWithoutRegisteredPlaceholders()
     {
