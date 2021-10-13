@@ -8,9 +8,75 @@ use BrizyPlaceholders\Replacer;
 use BrizyPlaceholdersTests\Sample\LoopPlaceholder;
 use BrizyPlaceholdersTests\Sample\TestPlaceholder;
 use PHPUnit\Framework\TestCase;
+use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
 
 class ExtractorTest extends TestCase
 {
+    use ProphecyTrait;
+
+    public function extractedPlaceholderContentObjectsProvider() {
+        return [
+            ['',0,[],[]],
+            ['{{placeholder}}', 1,['placeholder'],[]],
+            ['{{place_holder}}',1,['place_holder'],[]],
+            ['{{place_holder attr="1"}}',1,['place_holder'],[['attr'=>'1']]],
+            ['{{place_holder attr="1" attr2="2"}}',1,['place_holder'],[['attr'=>'1','attr2'=>'2']]],
+            ['{{place_holder   attr="1"   attr2="2"   }}',1,['place_holder'],[['attr'=>'1','attr2'=>'2']]],
+            ['{{  place_holder   attr="1"   attr2="2"}}',1,['place_holder'],[['attr'=>'1','attr2'=>'2']]],
+            ['{{placeholder-part}}', 1,['placeholder-part'],[]],
+            ['{{placeholder_test-test}}', 1,['placeholder_test-test'],[]],
+        ];
+    }
+
+    /**
+     * @dataProvider extractedPlaceholderContentObjectsProvider
+     *
+     * @param $content
+     * @param $expectedCount
+     * @param $expectedPlaceholderNames
+     * @param $expectedPlaceholderAttributes
+     */
+    public function testExtractedPlaceholderContentObjects($content,$expectedCount, $expectedPlaceholderNames,$expectedPlaceholderAttributes) {
+        $registry = new Registry();
+
+        foreach($expectedPlaceholderNames as $i=>$expectedPlaceholderName) {
+            $placeholderProphecy = $this->prophesize('BrizyPlaceholdersTests\Sample\TestPlaceholder');
+            $placeholderProphecy->support(Argument::exact($expectedPlaceholderName))->willReturn(true);
+            $placeholderProphecy->getValue(Argument::any())->willReturn($expectedPlaceholderName);
+            $placeholderProphecy->getUid()->willReturn('1111'.$i);
+            $registry->registerPlaceholder( $placeholderProphecy->reveal() );
+        }
+
+        $extractor = new Extractor($registry);
+
+        list($contentPlaceholders, $instancePlaceholders, $returnedContent) = $extractor->extract($content);
+
+        $this->assertCount($expectedCount,$contentPlaceholders,'It should extract '.$expectedCount.' placeholders');
+
+        foreach ($contentPlaceholders as $i=>$contentPlaceholder) {
+            $this->assertStringNotContainsString(
+                "{{{$contentPlaceholder->getName()}}}}",
+                $returnedContent,
+                'It should return the content with the placeholder replaced'
+            );
+
+            $this->assertTrue(in_array($contentPlaceholder->getName(),$expectedPlaceholderNames),'The expected name has not been extracted');
+
+            $attrKeys = array_keys($contentPlaceholder->getAttributes());
+            $attrValues = array_values($contentPlaceholder->getAttributes());
+
+            if(count($expectedPlaceholderAttributes)==0) {
+                continue;
+            }
+
+            $expectedAttrKeys = array_keys($expectedPlaceholderAttributes[$i]);
+            $expectedAttrValues = array_values($expectedPlaceholderAttributes[$i]);
+
+            $this->assertCount(0, array_diff($expectedAttrValues,$attrValues),'The content placeholder should have the expected attribute values');
+            $this->assertCount(0, array_diff($attrKeys,$expectedAttrKeys),'The content placeholder should have the expected attribute name');
+        }
+    }
 
     public function testExtractWithoutRegisteredPlaceholders()
     {
@@ -41,7 +107,6 @@ class ExtractorTest extends TestCase
             $returnedContent,
             'It should return the content with the placeholder replaced'
         );
-
     }
 
     public function testExtractPlaceholdersWithContent()
@@ -70,6 +135,9 @@ class ExtractorTest extends TestCase
     {
         return [
             ["Some content with a {{placeholder attr='1'}}.", 1],
+            ["Some content with a {{placeholder-name attr='1'}}.", 1],
+            ["Some content with a {{placeholder_with-name attr='1'}}.", 1],
+            ["Some content with a {{placeholder_with-name}}.", 1],
             ["Some content with a {{placeholder attr=\"1\"}}.", 1],
             ["Some content {{placeholder attr='1'}}  with a {{placeholder attr='1'}}.", 2],
             ["Some content {{placeholder attr=\"1\"}}  with a {{placeholder attr=\"1\"}}.", 2],
