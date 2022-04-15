@@ -2,6 +2,8 @@
 
 namespace BrizyPlaceholdersTests\BrizyPlaceholders;
 
+use BrizyPlaceholders\ContentPlaceholder;
+use BrizyPlaceholders\EmptyContext;
 use BrizyPlaceholders\Extractor;
 use BrizyPlaceholders\Registry;
 use BrizyPlaceholders\Replacer;
@@ -15,17 +17,18 @@ class ExtractorTest extends TestCase
 {
     use ProphecyTrait;
 
-    public function extractedPlaceholderContentObjectsProvider() {
+    public function extractedPlaceholderContentObjectsProvider()
+    {
         return [
-            ['',0,[],[]],
-            ['{{placeholder}}', 1,['placeholder'],[]],
-            ['{{place_holder}}',1,['place_holder'],[]],
-            ['{{place_holder attr="1"}}',1,['place_holder'],[['attr'=>'1']]],
-            ['{{place_holder attr="1" attr2="2"}}',1,['place_holder'],[['attr'=>'1','attr2'=>'2']]],
-            ['{{place_holder   attr="1"   attr2="2"   }}',1,['place_holder'],[['attr'=>'1','attr2'=>'2']]],
-            ['{{  place_holder   attr="1"   attr2="2"}}',1,['place_holder'],[['attr'=>'1','attr2'=>'2']]],
-            ['{{placeholder-part}}', 1,['placeholder-part'],[]],
-            ['{{placeholder_test-test}}', 1,['placeholder_test-test'],[]],
+            ['', 0, [], []],
+            ['{{placeholder}}', 1, ['placeholder'], []],
+            ['{{place_holder}}', 1, ['place_holder'], []],
+            ['{{place_holder attr="1"}}', 1, ['place_holder'], [['attr' => '1']]],
+            ['{{place_holder attr="1" attr2="2"}}', 1, ['place_holder'], [['attr' => '1', 'attr2' => '2']]],
+            ['{{place_holder   attr="1"   attr2="2"   }}', 1, ['place_holder'], [['attr' => '1', 'attr2' => '2']]],
+            ['{{  place_holder   attr="1"   attr2="2"}}', 1, ['place_holder'], [['attr' => '1', 'attr2' => '2']]],
+            ['{{placeholder-part}}', 1, ['placeholder-part'], []],
+            ['{{placeholder_test-test}}', 1, ['placeholder_test-test'], []],
         ];
     }
 
@@ -37,50 +40,66 @@ class ExtractorTest extends TestCase
      * @param $expectedPlaceholderNames
      * @param $expectedPlaceholderAttributes
      */
-    public function testExtractedPlaceholderContentObjects($content,$expectedCount, $expectedPlaceholderNames,$expectedPlaceholderAttributes) {
+    public function testExtractedPlaceholderContentObjects(
+        $content,
+        $expectedCount,
+        $expectedPlaceholderNames,
+        $expectedPlaceholderAttributes
+    ) {
         $registry = new Registry();
 
-        foreach($expectedPlaceholderNames as $i=>$expectedPlaceholderName) {
+        foreach ($expectedPlaceholderNames as $i => $expectedPlaceholderName) {
             $placeholderProphecy = $this->prophesize('BrizyPlaceholdersTests\Sample\TestPlaceholder');
             $placeholderProphecy->support(Argument::exact($expectedPlaceholderName))->willReturn(true);
             $placeholderProphecy->getValue(Argument::any())->willReturn($expectedPlaceholderName);
             $placeholderProphecy->getUid()->willReturn('1111'.$i);
-            $registry->registerPlaceholder( $placeholderProphecy->reveal() );
+            $registry->registerPlaceholder($placeholderProphecy->reveal());
         }
 
         $extractor = new Extractor($registry);
 
         list($contentPlaceholders, $instancePlaceholders, $returnedContent) = $extractor->extract($content);
 
-        $this->assertCount($expectedCount,$contentPlaceholders,'It should extract '.$expectedCount.' placeholders');
+        $this->assertCount($expectedCount, $contentPlaceholders, 'It should extract '.$expectedCount.' placeholders');
 
-        foreach ($contentPlaceholders as $i=>$contentPlaceholder) {
+        foreach ($contentPlaceholders as $i => $contentPlaceholder) {
             $this->assertStringNotContainsString(
                 "{{{$contentPlaceholder->getName()}}}}",
                 $returnedContent,
                 'It should return the content with the placeholder replaced'
             );
 
-            $this->assertTrue(in_array($contentPlaceholder->getName(),$expectedPlaceholderNames),'The expected name has not been extracted');
+            $this->assertTrue(
+                in_array($contentPlaceholder->getName(), $expectedPlaceholderNames),
+                'The expected name has not been extracted'
+            );
 
-            $attrKeys = array_keys($contentPlaceholder->getAttributes());
+            $attrKeys   = array_keys($contentPlaceholder->getAttributes());
             $attrValues = array_values($contentPlaceholder->getAttributes());
 
-            if(count($expectedPlaceholderAttributes)==0) {
+            if (count($expectedPlaceholderAttributes) == 0) {
                 continue;
             }
 
-            $expectedAttrKeys = array_keys($expectedPlaceholderAttributes[$i]);
+            $expectedAttrKeys   = array_keys($expectedPlaceholderAttributes[$i]);
             $expectedAttrValues = array_values($expectedPlaceholderAttributes[$i]);
 
-            $this->assertCount(0, array_diff($expectedAttrValues,$attrValues),'The content placeholder should have the expected attribute values');
-            $this->assertCount(0, array_diff($attrKeys,$expectedAttrKeys),'The content placeholder should have the expected attribute name');
+            $this->assertCount(
+                0,
+                array_diff($expectedAttrValues, $attrValues),
+                'The content placeholder should have the expected attribute values'
+            );
+            $this->assertCount(
+                0,
+                array_diff($attrKeys, $expectedAttrKeys),
+                'The content placeholder should have the expected attribute name'
+            );
         }
     }
 
     public function testExtractWithoutRegisteredPlaceholders()
     {
-        $registry = new Registry();
+        $registry  = new Registry();
         $extractor = new Extractor($registry);
 
         $content = "Some content with a {{placeholder}}.";
@@ -142,10 +161,20 @@ class ExtractorTest extends TestCase
             ["Some content {{placeholder attr='1'}}  with a {{placeholder attr='1'}}.", 2],
             ["Some content {{placeholder attr=\"1\"}}  with a {{placeholder attr=\"1\"}}.", 2],
             ["<img src=\"{{placeholder attr='1'}} 1x {{placeholder attr='1'}} 2x\"/>", 2],
-            ['<source srcset="{{placeholder cW=&apos;555&apos; cH=&apos;548&apos;}} 1x, {{placeholder cW=&apos;1110&apos; cH=&apos;1096&apos;}} 2x" media="(min-width: 992px)">', 2],
-            ['<source srcset="{{placeholder cW=&#x27;555&#x27; cH=&#x27;548&#x27;}} 1x, {{placeholder cW=&#x27;1110&#x27; cH=&#x27;1096&#x27;}} 2x" media="(min-width: 992px)">', 2],
-            ['<source srcset="{{placeholder cW="555" cH=&#x27;548&#x27;}} 1x, {{placeholder cW=&#x27;1110&#x27; cH=&#x27;1096&#x27;}} 2x" media="(min-width: 992px)">', 2],
-            ['{{placeholder type=&#x27;posts&#x27; collection_type=&#x27;/collection_types/5557&#x27; count=&#x27;3&#x27; order_by=&#x27;id&#x27; order=&#x27;DESC&#x27; offset=&#x27;0&#x27;}}
+            [
+                '<source srcset="{{placeholder cW=&apos;555&apos; cH=&apos;548&apos;}} 1x, {{placeholder cW=&apos;1110&apos; cH=&apos;1096&apos;}} 2x" media="(min-width: 992px)">',
+                2,
+            ],
+            [
+                '<source srcset="{{placeholder cW=&#x27;555&#x27; cH=&#x27;548&#x27;}} 1x, {{placeholder cW=&#x27;1110&#x27; cH=&#x27;1096&#x27;}} 2x" media="(min-width: 992px)">',
+                2,
+            ],
+            [
+                '<source srcset="{{placeholder cW="555" cH=&#x27;548&#x27;}} 1x, {{placeholder cW=&#x27;1110&#x27; cH=&#x27;1096&#x27;}} 2x" media="(min-width: 992px)">',
+                2,
+            ],
+            [
+                '{{placeholder type=&#x27;posts&#x27; collection_type=&#x27;/collection_types/5557&#x27; count=&#x27;3&#x27; order_by=&#x27;id&#x27; order=&#x27;DESC&#x27; offset=&#x27;0&#x27;}}
 <div class="brz-posts__item">
     <source srcset="{{brizy_dc_img_featured_image cW=&#x27;350&#x27; cH=&#x27;263&#x27;}} 1x,
             {{brizy_dc_img_featured_image cW=&#x27;700&#x27; cH=&#x27;526&#x27;}} 2x\
@@ -173,7 +202,9 @@ class ExtractorTest extends TestCase
           l7.707-7.707C23.098,12.316,23.098,11.684,22.707,11.293z\
     "/>
 </g></svg><span class="brz-span
-                brz-text__editor">READ MORE</span></a></div></div></div></div></div></div>{{end_placeholder}}', 1],
+                brz-text__editor">READ MORE</span></a></div></div></div></div></div></div>{{end_placeholder}}',
+                1,
+            ],
         ];
     }
 
@@ -197,6 +228,7 @@ class ExtractorTest extends TestCase
     {
         $registry = new Registry();
         $registry->registerPlaceholder(new TestPlaceholder());
+        $registry->registerPlaceholder(new LoopPlaceholder());
         $extractor = new Extractor($registry);
 
         $content = "Some content with a {{placeholder}} {{placeholder}} {{placeholder}}.";
@@ -213,16 +245,87 @@ class ExtractorTest extends TestCase
 
     public function testStripPlaceholders()
     {
-        $registry = new Registry();
+        $registry  = new Registry();
         $extractor = new Extractor($registry);
 
-        $content = "Some content with a {{placeholder}}.";
+        $content         = "Some content with a {{placeholder}}.";
         $strippedContent = $extractor->stripPlaceholders($content);
-        $this->assertStringNotContainsString('{{placeholder}}', $strippedContent, 'It should not contain any placeholders');
+        $this->assertStringNotContainsString(
+            '{{placeholder}}',
+            $strippedContent,
+            'It should not contain any placeholders'
+        );
 
 
-        $content = "Some content.";
+        $content         = "Some content.";
         $strippedContent = $extractor->stripPlaceholders($content);
         $this->assertEquals($content, $strippedContent, 'It should not modify the content');
     }
+
+    public function testRecursivePlaceholders()
+    {
+
+        $registry = new Registry();
+        $registry->registerPlaceholder(new TestPlaceholder());
+        $extractor = new Extractor($registry);
+        $content   = "{{ placeholder }}content1 {{placeholder_loop}} {{ placeholder }}content inner{{ end_placeholder }} {{end_placeholder_loop}} content2";
+
+        list($contentPlaceholders, $instancePlaceholders, $returnedContent) = $extractor->extract($content);
+
+        $this->assertCount(1, $contentPlaceholders, 'It should return one placeholder');
+        $this->assertCount(1, $instancePlaceholders, 'It should return one instance placeholder');
+
+        $t = 0;
+    }
+
+    public function testExtractiIgnoringRegistry()
+    {
+
+        $registry  = new Registry();
+        $extractor = new Extractor($registry);
+        $content   = "{{ placeholder }}content1  {{ middle_placeholder }}content inner{{ end_placeholder }}  {{placeholder_loop}} xxxxx {{end_placeholder_loop}} content2";
+
+        list($contentPlaceholders, $returnedContent) = $extractor->extractIgnoringRegistry($content);
+
+        $this->assertCount(2, $contentPlaceholders, 'It should return one placeholder');
+
+        $t = 0;
+    }
+
+    public function testExtractIgnoringRegistryWIthCallback()
+    {
+
+        $registry  = new Registry();
+        $extractor = new Extractor($registry);
+        $content   = "content {{ placeholder }}content1 {{ middle_placeholder }}content inner{{ end_placeholder }} {{placeholder_loop}} xxxxx {{end_placeholder_loop}} content2";
+
+        list($contentPlaceholders, $returnedContent) = $extractor->extractIgnoringRegistry(
+            $content,
+            function (ContentPlaceholder $p) {
+                return $p->getName();
+            }
+        );
+
+        $this->assertCount(2, $contentPlaceholders, 'It should return one placeholder');
+        $this->assertEquals(
+            "content placeholder placeholder_loop content2",
+            $returnedContent,
+            'It should return correct content'
+        );
+
+        $t = 0;
+    }
+
+//    public function testUserCase1() {
+//        $this->setName("Test the html provided by a user. It should extract all placeholders.");
+//        $registry = new Registry();
+//        $registry->registerPlaceholder(new TestPlaceholder());
+//        $extractor = new Extractor($registry);
+//        $content = file_get_contents("./tests/data/user_case1.html");
+//
+//        list($contentPlaceholders, $instancePlaceholders, $returnedContent) = $extractor->extract($content);
+//
+//        $t=0;
+//    }
+
 }

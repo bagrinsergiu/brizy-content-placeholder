@@ -65,7 +65,7 @@ final class Extractor
                 continue;
             }
             $placeholderInstances[$i] = $instance;
-            $contentPlaceholders[$i] = $placeholder = new ContentPlaceholder(
+            $contentPlaceholders[$i]  = $placeholder = new ContentPlaceholder(
                 $matches['placeholderName'][$i],
                 $matches['placeholder'][$i],
                 $this->getPlaceholderAttributes($matches['attributes'][$i]),
@@ -84,6 +84,43 @@ final class Extractor
         return array($contentPlaceholders, $placeholderInstances, $content);
     }
 
+    public function extractIgnoringRegistry($content, $callback = null)
+    {
+        $contentPlaceholders = array();
+        $matches             = array();
+        $expression          = self::PLACEHOLDER_REQEX;
+
+        if(is_null($callback) && !is_callable( $callback)) {
+            $callback = function(ContentPlaceholder $placeholder) { return $placeholder->getUid(); };
+        }
+
+        preg_match_all($expression, $content, $matches);
+
+        if (count($matches['placeholder']) == 0) {
+            return array($contentPlaceholders, $content);
+        }
+
+        foreach ($matches['placeholder'] as $i => $name) {
+
+            $contentPlaceholders[$i] = $placeholder = new ContentPlaceholder(
+                $matches['placeholderName'][$i],
+                $matches['placeholder'][$i],
+                $this->getPlaceholderAttributes($matches['attributes'][$i]),
+                $matches['content'][$i]
+            );
+
+            $pos = strpos($content, $placeholder->getPlaceholder());
+
+            $length = strlen($placeholder->getPlaceholder());
+
+            if ($pos !== false) {
+                $content = substr_replace($content, $callback($placeholder), $pos, $length);
+            }
+        }
+
+        return array($contentPlaceholders, $content);
+    }
+
     /**
      * Split the attributs from attribute string
      *
@@ -93,24 +130,24 @@ final class Extractor
      */
     private function getPlaceholderAttributes($attributeString)
     {
-        $attrString = trim($attributeString);
+        $attrString  = trim($attributeString);
         $attrMatches = array();
-        $attributes = array();
+        $attributes  = array();
         preg_match_all(self::ATTRIBUTE_REGEX, $attrString, $attrMatches);
 
         if (isset($attrMatches[0]) && is_array($attrMatches[0])) {
             foreach ($attrMatches[0] as $i => $attStr) {
-                $attrName = $attrMatches['attr_name'][$i];
+                $attrName  = $attrMatches['attr_name'][$i];
                 $attrValue = urldecode($attrMatches['attr_value'][$i]);
-                $isArray = $attrMatches['array'][$i]!='';
-                $arrayKey = $attrMatches['array_key'][$i];
+                $isArray   = $attrMatches['array'][$i] != '';
+                $arrayKey  = $attrMatches['array_key'][$i];
                 // check if the attribute is an array
-                if($isArray)
-                {
-                    if($arrayKey)
+                if ($isArray) {
+                    if ($arrayKey) {
                         $attributes[$attrName][$arrayKey] = $attrValue;
-                    else
+                    } else {
                         $attributes[$attrName][] = $attrValue;
+                    }
                 } else {
                     $attributes[$attrName] = $attrValue;
                 }
