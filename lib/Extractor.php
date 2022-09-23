@@ -27,7 +27,9 @@ final class Extractor
      */
     public function __construct($registry)
     {
-        @ini_set('pcre.backtrack_limit', "2000000");
+        // there was cases were the page had mode that 2Mb of html and
+        // this is making sure the preg_match_all wil work
+        @ini_set('pcre.backtrack_limit', "900000000");
         $this->registry = $registry;
     }
 
@@ -50,7 +52,7 @@ final class Extractor
         $matches              = array();
         $expression           = self::PLACEHOLDER_REQEX;
 
-        preg_match_all($expression, $content, $matches);
+        $coutn = preg_match_all($expression, $content, $matches);
 
         if (count($matches['placeholder']) == 0) {
             return array($contentPlaceholders, [], $content);
