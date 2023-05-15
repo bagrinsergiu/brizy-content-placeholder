@@ -15,7 +15,6 @@ interface PlaceholderInterface
      */
     public function support($placeholderName);
 
-
     /**
      * Return the string value that will replace the placeholder name in content
      *
@@ -30,10 +29,42 @@ interface PlaceholderInterface
 
     public function getFallbackValue(ContextInterface $context, ContentPlaceholder $placeholder);
 
+    public function getConfigStructure();
+
     /**
-     * It should return an unique identifier of the placeholder
+     * It should return a unique identifier of the placeholder
      *
      * @return mixed
      */
     public function getUid();
+
+    /**
+     * Return the placeholder Label
+     * @return string
+     */
+    public function getLabel();
+
+    /**
+     * @param $label
+     * @return mixed
+     */
+    public function setLabel($label);
+
+    /**
+     * Return the placeholder name
+     * @return string
+     */
+    public function getPlaceholder();
+
+    /**
+     * @param $placeholder
+     * @return mixed
+     */
+    public function setPlaceholder($placeholder);
+
+    /**
+     * Return the hard coded attributes if there are any
+     * @return string
+     */
+    public function getAttributes();
 }

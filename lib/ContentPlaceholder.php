@@ -42,7 +42,6 @@ final class ContentPlaceholder
      */
     public function __construct($name, $placeholder, $attributes = null, $content = null)
     {
-
         $this->setUid(md5(microtime() . mt_rand(0, PHP_INT_MAX) . $placeholder));
         $this->setPlaceholder($placeholder);
         $this->setName($name);
@@ -54,8 +53,19 @@ final class ContentPlaceholder
      * @return null
      * @throws \Exception
      */
-    public function getId() {
-        return $this->getAttribute( 'id' );
+    public function getId($required = false)
+    {
+        return $this->getAttribute('id', $required);
+    }
+
+    public function getEntityId($required = false)
+    {
+        return $this->getId($required);
+    }
+
+    public function getEntityType($required = false)
+    {
+        return $this->getAttribute('typeId', $required);
     }
 
     /**
