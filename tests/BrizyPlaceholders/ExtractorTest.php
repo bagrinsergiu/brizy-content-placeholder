@@ -316,16 +316,21 @@ class ExtractorTest extends TestCase
         $t = 0;
     }
 
-//    public function testUserCase1() {
-//        $this->setName("Test the html provided by a user. It should extract all placeholders.");
-//        $registry = new Registry();
-//        $registry->registerPlaceholder(new TestPlaceholder());
-//        $extractor = new Extractor($registry);
-//        $content = file_get_contents("./tests/data/user_case1.html");
-//
-//        list($contentPlaceholders, $instancePlaceholders, $returnedContent) = $extractor->extract($content);
-//
-//        $t=0;
-//    }
+    public function testUserCase1() {
+        $this->setName("Test the html provided by a user. It should extract all placeholders.");
+        $registry = new Registry();
+        $registry->registerPlaceholder(new TestPlaceholder('display_by_translation'));
+        $registry->registerPlaceholder(new TestPlaceholder('display_by_roles'));
+        $registry->registerPlaceholder(new TestPlaceholder('site_url'));
+        $extractor = new Extractor($registry);
+        $content = file_get_contents("/opt/project/tests/data/user_case3.html");
+        $content = file_get_contents("/opt/project/tests/data/user_case4.html");
+
+        list($contentPlaceholders, $instancePlaceholders, $returnedContent) = $extractor->extract($content);
+
+        $t=0;
+    }
 
 }
+
+
