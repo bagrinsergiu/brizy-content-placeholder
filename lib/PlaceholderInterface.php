@@ -67,4 +67,10 @@ interface PlaceholderInterface
      * @return string
      */
     public function getAttributes();
+
+    /**
+     * Return the  attributes that can vary
+     * @return string
+     */
+    public function getVaryAttributes();
 }
