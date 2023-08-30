@@ -33,13 +33,14 @@ abstract class AbstractPlaceholder implements PlaceholderInterface, \Serializabl
     {
         $placeholder = $this->getPlaceholder();
 
-        if (!empty($placeholder)) {
-            $attrs = $this->buildAttributeString();
-
-            return "{{" . $placeholder . " " . $attrs . "}}";
+        if (empty($placeholder)) {
+            return '';
         }
 
-        return "";
+        $attrs = $this->buildAttributeString();
+        $attrs = $attrs ? ' ' . $attrs : '';
+
+        return '{{' . $placeholder . $attrs . '}}';
     }
 
     protected function buildAttributeString()
