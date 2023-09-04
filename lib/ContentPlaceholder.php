@@ -185,4 +185,35 @@ final class ContentPlaceholder
 
         return $this;
     }
+
+    /**.
+     * @return string
+     */
+    public function buildPlaceholder()
+    {
+        $placeholderName = $this->getName();
+
+        $attrs = $this->buildAttributeString();
+
+        $placeholder = "{{" . $placeholderName . " " . $attrs . "}}";
+
+        if ($content = trim($this->getContent())) {
+            $placeholder .= "{$placeholder}$content" . '{{end_' . $placeholderName . '}}';
+        }
+
+        return $placeholder;
+    }
+
+    protected function buildAttributeString()
+    {
+        return implode(" ",
+            array_map(function ($key, $val) {
+                return "{$key}=\"{$val}\"";
+            },
+                array_keys($this->getAttributes()),
+                array_values($this->getAttributes())
+            )
+        );
+    }
+
 }
