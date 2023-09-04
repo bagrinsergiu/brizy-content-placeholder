@@ -36,7 +36,7 @@ abstract class AbstractPlaceholder implements PlaceholderInterface, \Serializabl
         if (!empty($placeholder)) {
             $attrs = $this->buildAttributeString();
             if (strlen($attrs) !== 0)
-                $attrs .= " " . $attrs;
+                $attrs = " " . $attrs;
 
 
             return "{{" . $placeholder . $attrs . "}}";
