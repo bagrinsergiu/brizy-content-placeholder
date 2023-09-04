@@ -195,7 +195,10 @@ final class ContentPlaceholder
 
         $attrs = $this->buildAttributeString();
 
-        $placeholder = "{{" . $placeholderName . " " . $attrs . "}}";
+        if (strlen($attrs)!==0)
+            $attrs .= " " . $attrs;
+
+        $placeholder = "{{" . $placeholderName . $attrs . "}}";
 
         if ($content = trim($this->getContent())) {
             $placeholder .= "{$placeholder}$content" . '{{end_' . $placeholderName . '}}';
