@@ -28,7 +28,7 @@ class ExtractorTest extends TestCase
             ['{{place_holder   attr="1"   attr2="2"   }}', 1, ['place_holder'], [['attr' => '1', 'attr2' => '2']]],
             ['{{  place_holder   attr="1"   attr2="2"}}', 1, ['place_holder'], [['attr' => '1', 'attr2' => '2']]],
             ['{{placeholder-part}}', 1, ['placeholder-part'], []],
-            ['{{placeholder_test-test}}', 1, ['placeholder_test-test'], []],
+            ['{{placeholder_test-test}}', 1, ['placeholder_test-test'], []]
         ];
     }
 
@@ -110,10 +110,11 @@ class ExtractorTest extends TestCase
         $this->assertEquals($content, $returnedContent, 'It should return the same content');
     }
 
+
     public function testExtract()
     {
         $registry = new Registry();
-        $registry->registerPlaceholder(new TestPlaceholder());
+        $registry->registerPlaceholder(new TestPlaceholder('placeholder'));
         $extractor = new Extractor($registry);
 
         $content = "Some content with a {{placeholder}}.";
@@ -227,8 +228,9 @@ class ExtractorTest extends TestCase
     public function testExtractWithRepeatingPlaceholders()
     {
         $registry = new Registry();
-        $registry->registerPlaceholder(new TestPlaceholder());
-        $registry->registerPlaceholder(new LoopPlaceholder());
+        $registry->registerPlaceholder(new TestPlaceholder('placeholder'));
+        $replacer = new Replacer($registry);
+        $registry->registerPlaceholder(new LoopPlaceholder($replacer));
         $extractor = new Extractor($registry);
 
         $content = "Some content with a {{placeholder}} {{placeholder}} {{placeholder}}.";

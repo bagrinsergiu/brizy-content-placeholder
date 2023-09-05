@@ -102,4 +102,8 @@ class TestPlaceholder implements PlaceholderInterface
     {
         return md5(serialize($this));
     }
+
+    public function getVaryAttributes() {
+        return [];
+    }
 }

@@ -75,4 +75,48 @@ class LoopPlaceholder implements PlaceholderInterface
     {
         return md5(microtime());
     }
+
+    public function getVaryAttributes()
+    {
+        return [];
+    }
+
+    public function getAttributes()
+    {
+        // TODO: Implement getAttributes() method.
+    }
+
+
+    public function getLabel()
+    {
+        // TODO: Implement getLabel() method.
+    }
+
+    public function setLabel($label)
+    {
+        // TODO: Implement setLabel() method.
+    }
+
+    public function getPlaceholder()
+    {
+        // TODO: Implement getPlaceholder() method.
+    }
+
+    public function setPlaceholder($placeholder)
+    {
+        // TODO: Implement setPlaceholder() method.
+    }
+
+    public function getConfigStructure()
+    {
+        return [
+            'id' => $this->getUid(),
+            'label' => $this->getLabel(),
+            'name' => $this->getPlaceholder(),
+            'placeholder' => "{{" . $this->getPlaceholder() . "}}",
+            'display' => '',
+            'attr' => (object)[]
+        ];
+    }
+
 }

@@ -148,7 +148,8 @@ class ReplacerTest extends TestCase
 
     public function testFallbackAttribute()
     {
-        $mock = $this->createPartialMock(TestPlaceholder::class, ['getValue']);
+        $mock = $this->createPartialMock(TestPlaceholder::class, ['getValue','support']);
+        $mock->method('support')->willReturn(true);
         $mock->method('getValue')->willReturn('');
 
         $registry = new Registry();
