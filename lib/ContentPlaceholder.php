@@ -211,6 +211,7 @@ final class ContentPlaceholder
     {
         return implode(" ",
             array_map(function ($key, $val) {
+                $val = addslashes(urlencode($val));
                 return "{$key}=\"{$val}\"";
             },
                 array_keys($this->getAttributes()),

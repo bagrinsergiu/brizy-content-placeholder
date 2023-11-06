@@ -11,7 +11,7 @@ final class Extractor
     //const PLACEHOLDER_REQEX = "/(?<placeholder>{{\s*(?<placeholderName>.+?)(?<attributes>(?:\s+)((?:\w+\s*=\s*(?:'|\"|\&quot;|\&apos;)(?:.[^\"']*|)(?:'|\"|\&quot;|\&apos;)\s*)*))?}}(?:(?<content>.*?){{\s*end_(\g{placeholderName})\s*}})?)/ims";
     const PLACEHOLDER_REQEX = "/(?<placeholder>{{\s*(?<placeholderName>.+?)\s*(?<attributes>\s+((?:\w+(?:\[(?:\w+)?\])?\s*=\s*(?:'|\"|\&quot;|\&apos;|\&#x27;)(?:.*?)(?<!\\\\)(?:'|\"|\&quot;|\&apos;|\&#x27;)\s*)*))?}}(?:(?<content>.*?){{\s*end_(\g{placeholderName})\s*}})?)/ims";
 
-    const ATTRIBUTE_REGEX = "/((?<attr_name>\w+)(?<array>\[(?<array_key>\w+)?\])?)\s*=\s*(?<quote>'|\"|\&quot;|\&apos;|\&#x27;)(?<attr_value>.*?)(\g{quote})/mi";
+    const ATTRIBUTE_REGEX = "/((?<attr_name>\w+)(?<array>\[(?<array_key>\w+)?\])?)\s*=\s*(?<quote>'|\"|\&quot;|\&apos;|\&#x27;)(?<attr_value>.*?)(\g{quote})(!?\s|$)/mi";
     //const ATTRIBUTE_REGEX = "/(\w+)\s*=\s*(?<quote>'|\"|\&quot;|\&apos;)(.*?)(\g{quote})/mi";
 
     /**

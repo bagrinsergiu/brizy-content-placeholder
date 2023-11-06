@@ -29,7 +29,79 @@ class ExtractorTest extends TestCase
             ['{{  place_holder   attr="1"   attr2="2"}}', 1, ['place_holder'], [['attr' => '1', 'attr2' => '2']]],
             ['{{placeholder-part}}', 1, ['placeholder-part'], []],
             ['{{placeholder_test-test}}', 1, ['placeholder_test-test'], []],
-            ['{{placeholder attr="val1\"val2"}}', 1, ['placeholder'], []]
+            ['{{placeholder attr="val1\"val2"}}', 1, ['placeholder'], []],
+            [
+                "{{placeholder content='e3tla2tfZXZlbnRfY2FsZW5kYXJ9fQ==' category='all' group='all'   howmanymonths='8' detail_page='%7B%7B%20brizy_dc_url_post%20%20id=%22/collection_items/16780%22%20%7D%7D' time='0'}}",
+                1,
+                ['placeholder'],
+                [
+                    [
+                        'content' => 'e3tla2tfZXZlbnRfY2FsZW5kYXJ9fQ==',
+                        'category' => 'all',
+                        'group' => 'all',
+                        'howmanymonths' => '8',
+                        'detail_page' => urldecode(
+                            '%7B%7B%20brizy_dc_url_post%20%20id=%22/collection_items/16780%22%20%7D%7D'
+                        ),
+                        'time' => '0',
+                    ],
+                ],
+            ],
+            [
+                "{{placeholder
+                            content='e3tla2tfc2VybW9uX2xpc3R9fQ==' 
+                            howmany='3' 
+                            group='all' 
+                            category='all' 
+                            series='all'
+                            show_title='1' 
+                            show_pagination='1' 
+                            show_group='0' 
+                            show_preacher='0' 
+                            show_passage='0'
+                            show_preview='0' 
+                            show_inline_video='0' 
+                            show_inline_audio='0' 
+                            show_date='1' 
+                            show_images='1'
+                            show_series='0' 
+                            show_category='0' 
+                            show_media_links='1' 
+                            show_meta_headings='1'
+                            detail_url='%7B%7Bplaceholder%20content='e3sgYnJpenlfZGNfdXJsX3Bvc3QgZW50aXR5SWQ9Ii9jb2xsZWN0aW9uX2l0ZW1zLzE2ODAyIiB9fQ == '%7D%7D'
+                            detail_page_button_text='Button' 
+                            sticky_space='0' }}",
+                1,
+                ['placeholder'],
+                [
+                    [
+                        'content' => 'e3tla2tfc2VybW9uX2xpc3R9fQ==',
+                        'howmany' => '3',
+                        'group' => 'all',
+                        'category' => 'all',
+                        'series' => 'all',
+                        'show_title' => '1',
+                        'show_pagination' => '1',
+                        'show_group' => '0',
+                        'show_preacher' => '0',
+                        'show_passage' => '0',
+                        'show_preview' => '0',
+                        'show_inline_video' => '0',
+                        'show_inline_audio' => '0',
+                        'show_date' => '1',
+                        'show_images' => '1',
+                        'show_series' => '0',
+                        'show_category' => '0',
+                        'show_media_links' => '1',
+                        'show_meta_headings' => '1',
+                        'detail_url' => urldecode(
+                            '%7B%7Bplaceholder%20content=\'e3sgYnJpenlfZGNfdXJsX3Bvc3QgZW50aXR5SWQ9Ii9jb2xsZWN0aW9uX2l0ZW1zLzE2ODAyIiB9fQ == \'%7D%7D'
+                        ),
+                        'detail_page_button_text' => 'Button',
+                        'sticky_space' => '0',
+                    ],
+                ],
+            ],
         ];
     }
 
@@ -75,24 +147,26 @@ class ExtractorTest extends TestCase
                 'The expected name has not been extracted'
             );
 
-            $attrKeys   = array_keys($contentPlaceholder->getAttributes());
+            $attrKeys = array_keys($contentPlaceholder->getAttributes());
             $attrValues = array_values($contentPlaceholder->getAttributes());
 
             if (count($expectedPlaceholderAttributes) == 0) {
                 continue;
             }
 
-            $expectedAttrKeys   = array_keys($expectedPlaceholderAttributes[$i]);
+            $expectedAttrKeys = array_keys($expectedPlaceholderAttributes[$i]);
             $expectedAttrValues = array_values($expectedPlaceholderAttributes[$i]);
 
+            $haystack = array_diff($expectedAttrValues, $attrValues);
             $this->assertCount(
                 0,
-                array_diff($expectedAttrValues, $attrValues),
+                $haystack,
                 'The content placeholder should have the expected attribute values'
             );
+            $haystack1 = array_diff($attrKeys, $expectedAttrKeys);
             $this->assertCount(
                 0,
-                array_diff($attrKeys, $expectedAttrKeys),
+                $haystack1,
                 'The content placeholder should have the expected attribute name'
             );
         }
@@ -100,7 +174,7 @@ class ExtractorTest extends TestCase
 
     public function testExtractWithoutRegisteredPlaceholders()
     {
-        $registry  = new Registry();
+        $registry = new Registry();
         $extractor = new Extractor($registry);
 
         $content = "Some content with a {{placeholder}}.";
@@ -248,10 +322,10 @@ class ExtractorTest extends TestCase
 
     public function testStripPlaceholders()
     {
-        $registry  = new Registry();
+        $registry = new Registry();
         $extractor = new Extractor($registry);
 
-        $content         = "Some content with a {{placeholder}}.";
+        $content = "Some content with a {{placeholder}}.";
         $strippedContent = $extractor->stripPlaceholders($content);
         $this->assertStringNotContainsString(
             '{{placeholder}}',
@@ -260,7 +334,7 @@ class ExtractorTest extends TestCase
         );
 
 
-        $content         = "Some content.";
+        $content = "Some content.";
         $strippedContent = $extractor->stripPlaceholders($content);
         $this->assertEquals($content, $strippedContent, 'It should not modify the content');
     }
@@ -271,7 +345,7 @@ class ExtractorTest extends TestCase
         $registry = new Registry();
         $registry->registerPlaceholder(new TestPlaceholder());
         $extractor = new Extractor($registry);
-        $content   = "{{ placeholder }}content1 {{placeholder_loop}} {{ placeholder }}content inner{{ end_placeholder }} {{end_placeholder_loop}} content2";
+        $content = "{{ placeholder }}content1 {{placeholder_loop}} {{ placeholder }}content inner{{ end_placeholder }} {{end_placeholder_loop}} content2";
 
         list($contentPlaceholders, $instancePlaceholders, $returnedContent) = $extractor->extract($content);
 
@@ -284,9 +358,9 @@ class ExtractorTest extends TestCase
     public function testExtractiIgnoringRegistry()
     {
 
-        $registry  = new Registry();
+        $registry = new Registry();
         $extractor = new Extractor($registry);
-        $content   = "{{ placeholder }}content1  {{ middle_placeholder }}content inner{{ end_placeholder }}  {{placeholder_loop}} xxxxx {{end_placeholder_loop}} content2";
+        $content = "{{ placeholder }}content1  {{ middle_placeholder }}content inner{{ end_placeholder }}  {{placeholder_loop}} xxxxx {{end_placeholder_loop}} content2";
 
         list($contentPlaceholders, $returnedContent) = $extractor->extractIgnoringRegistry($content);
 
@@ -298,9 +372,9 @@ class ExtractorTest extends TestCase
     public function testExtractIgnoringRegistryWIthCallback()
     {
 
-        $registry  = new Registry();
+        $registry = new Registry();
         $extractor = new Extractor($registry);
-        $content   = "content {{ placeholder }}content1 {{ middle_placeholder }}content inner{{ end_placeholder }} {{placeholder_loop}} xxxxx {{end_placeholder_loop}} content2";
+        $content = "content {{ placeholder }}content1 {{ middle_placeholder }}content inner{{ end_placeholder }} {{placeholder_loop}} xxxxx {{end_placeholder_loop}} content2";
 
         list($contentPlaceholders, $returnedContent) = $extractor->extractIgnoringRegistry(
             $content,
