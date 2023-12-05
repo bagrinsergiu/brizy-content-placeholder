@@ -11,7 +11,7 @@ abstract class AbstractPlaceholder implements PlaceholderInterface, \Serializabl
      */
     public function getUid()
     {
-        return md5(microtime() . mt_rand(0, 10000));
+        return md5(microtime().mt_rand(0, 10000));
     }
 
     public function shouldFallbackValue($value, ContextInterface $context, ContentPlaceholder $placeholder)
@@ -22,6 +22,7 @@ abstract class AbstractPlaceholder implements PlaceholderInterface, \Serializabl
     public function getFallbackValue(ContextInterface $context, ContentPlaceholder $placeholder)
     {
         $attributes = $placeholder->getAttributes();
+
         return isset($attributes[PlaceholderInterface::FALLBACK_KEY]) ? $attributes[PlaceholderInterface::FALLBACK_KEY] : '';
     }
 
@@ -35,11 +36,12 @@ abstract class AbstractPlaceholder implements PlaceholderInterface, \Serializabl
 
         if (!empty($placeholder)) {
             $attrs = $this->buildAttributeString();
-            if (strlen($attrs) !== 0)
-                $attrs = " " . $attrs;
+            if (strlen($attrs) !== 0) {
+                $attrs = " ".$attrs;
+            }
 
 
-            return "{{" . $placeholder . $attrs . "}}";
+            return "{{".$placeholder.$attrs."}}";
         }
 
         return "";
@@ -47,8 +49,11 @@ abstract class AbstractPlaceholder implements PlaceholderInterface, \Serializabl
 
     protected function buildAttributeString()
     {
-        return implode(" ",
+        return implode(
+            " ",
             array_map(function ($key, $val) {
+                $val = addslashes(urlencode($val));
+
                 return "{$key}=\"{$val}\"";
             },
                 array_keys($this->getAttributes()),
@@ -90,6 +95,7 @@ abstract class AbstractPlaceholder implements PlaceholderInterface, \Serializabl
         }
     }
 
+    #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
         return get_object_vars($this);
