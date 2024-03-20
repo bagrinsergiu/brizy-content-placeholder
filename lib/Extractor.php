@@ -7,12 +7,12 @@ namespace BrizyPlaceholders;
  */
 final class Extractor
 {
+    static $cache = [];
+    static $cache2 = [];
 
-    //const PLACEHOLDER_REQEX = "/(?<placeholder>{{\s*(?<placeholderName>.+?)(?<attributes>(?:\s+)((?:\w+\s*=\s*(?:'|\"|\&quot;|\&apos;)(?:.[^\"']*|)(?:'|\"|\&quot;|\&apos;)\s*)*))?}}(?:(?<content>.*?){{\s*end_(\g{placeholderName})\s*}})?)/ims";
     const PLACEHOLDER_REQEX = "/(?<placeholder>{{\s*(?<placeholderName>.+?)\s*(?<attributes>\s+((?:\w+(?:\[(?:\w+)?\])?\s*=\s*(?:'|\"|\&quot;|\&apos;|\&#x27;)(?:.*?)(?<!\\\\)(?:'|\"|\&quot;|\&apos;|\&#x27;)\s*)*))?}}(?:(?<content>.*?){{\s*end_(\g{placeholderName})\s*}})?)/ims";
 
     const ATTRIBUTE_REGEX = "/((?<attr_name>\w+)(?<array>\[(?<array_key>\w+)?\])?)\s*=\s*(?<quote>'|\"|\&quot;|\&apos;|\&#x27;)(?<attr_value>.*?)(\g{quote})/mi";
-    //const ATTRIBUTE_REGEX = "/(\w+)\s*=\s*(?<quote>'|\"|\&quot;|\&apos;)(.*?)(\g{quote})/mi";
 
     /**
      * @var RegistryInterface
@@ -47,6 +47,12 @@ final class Extractor
      */
     public function extract($content)
     {
+        $md5Hash = md5( $content );
+
+		if ( isset( self::$cache[ $md5Hash ] ) ) {
+			return self::$cache[ $md5Hash ];
+		}
+
         $placeholderInstances = array();
         $contentPlaceholders = array();
         $matches = array();
@@ -55,7 +61,7 @@ final class Extractor
         $count = preg_match_all($expression, $content, $matches);
 
         if (count($matches['placeholder']) == 0) {
-            return array($contentPlaceholders, [], $content);
+            return self::$cache[ $md5Hash ] = array($contentPlaceholders, [], $content);
         }
 
         foreach ($matches['placeholder'] as $i => $name) {
@@ -83,11 +89,17 @@ final class Extractor
             }
         }
 
-        return array($contentPlaceholders, $placeholderInstances, $content);
+        return self::$cache[ $md5Hash ] = array($contentPlaceholders, $placeholderInstances, $content);
     }
 
     public function extractIgnoringRegistry($content, $callback = null)
     {
+        $md5Hash = md5( $content );
+
+		if ( isset( self::$cache2[ $md5Hash ] ) ) {
+			return self::$cache2[ $md5Hash ];
+		}
+
         $contentPlaceholders = array();
         $matches = array();
         $expression = self::PLACEHOLDER_REQEX;
@@ -101,7 +113,7 @@ final class Extractor
         preg_match_all($expression, $content, $matches);
 
         if (count($matches['placeholder']) == 0) {
-            return array($contentPlaceholders, $content);
+            return self::$cache2[ $md5Hash ] = array($contentPlaceholders, $content);
         }
 
         foreach ($matches['placeholder'] as $i => $name) {
@@ -122,7 +134,7 @@ final class Extractor
             }
         }
 
-        return array($contentPlaceholders, $content);
+        return self::$cache2[ $md5Hash ] = array($contentPlaceholders, $content);
     }
 
     /**
