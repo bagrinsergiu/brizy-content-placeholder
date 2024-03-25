@@ -7,9 +7,6 @@ namespace BrizyPlaceholders;
  */
 final class Extractor
 {
-    static $cache = [];
-    static $cache2 = [];
-
     //const PLACEHOLDER_REQEX = "/(?<placeholder>{{\s*(?<placeholderName>.+?)(?<attributes>(?:\s+)((?:\w+\s*=\s*(?:'|\"|\&quot;|\&apos;)(?:.[^\"']*|)(?:'|\"|\&quot;|\&apos;)\s*)*))?}}(?:(?<content>.*?){{\s*end_(\g{placeholderName})\s*}})?)/ims";
     const PLACEHOLDER_REQEX = "/(?<placeholder>{{\s*(?<placeholderName>.+?)\s*(?<attributes>\s+((?:\w+(?:\[(?:\w+)?\])?\s*=\s*(?:'|\"|\&quot;|\&apos;|\&#x27;)(?:.*?)(?<!\\\\)(?:'|\"|\&quot;|\&apos;|\&#x27;)\s*)*))?}}(?:(?<content>.*?){{\s*end_(\g{placeholderName})\s*}})?)/ims";
 
@@ -51,10 +48,6 @@ final class Extractor
     {
         $md5Hash = md5( $content );
 
-		if ( isset( self::$cache[ $md5Hash ] ) ) {
-			return self::$cache[ $md5Hash ];
-		}
-
         $placeholderInstances = array();
         $contentPlaceholders = array();
         $matches = array();
@@ -63,7 +56,7 @@ final class Extractor
         $count = preg_match_all($expression, $content, $matches);
 
         if (count($matches['placeholder']) == 0) {
-            return self::$cache[ $md5Hash ] = array($contentPlaceholders, [], $content);
+            return array($contentPlaceholders, [], $content);
         }
 
         foreach ($matches['placeholder'] as $i => $name) {
@@ -91,16 +84,11 @@ final class Extractor
             }
         }
 
-        return self::$cache[ $md5Hash ] = array($contentPlaceholders, $placeholderInstances, $content);
+        return array($contentPlaceholders, $placeholderInstances, $content);
     }
 
     public function extractIgnoringRegistry($content, $callback = null)
     {
-        $md5Hash = md5( $content );
-
-		if ( isset( self::$cache2[ $md5Hash ] ) ) {
-			return self::$cache2[ $md5Hash ];
-		}
 
         $contentPlaceholders = array();
         $matches = array();
@@ -115,7 +103,7 @@ final class Extractor
         preg_match_all($expression, $content, $matches);
 
         if (count($matches['placeholder']) == 0) {
-            return self::$cache2[ $md5Hash ] = array($contentPlaceholders, $content);
+            return  array($contentPlaceholders, $content);
         }
 
         foreach ($matches['placeholder'] as $i => $name) {
@@ -136,7 +124,7 @@ final class Extractor
             }
         }
 
-        return self::$cache2[ $md5Hash ] = array($contentPlaceholders, $content);
+        return array($contentPlaceholders, $content);
     }
 
     /**
