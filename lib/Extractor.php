@@ -2,16 +2,16 @@
 
 namespace BrizyPlaceholders;
 
+use Phplrt\Lexer\Lexer;
+use Phplrt\Lexer\Token\Composite;
+
 /**
  * Class Extractor
  */
-final class Extractor
+final class Extractor implements ExtractorInterface
 {
-    //const PLACEHOLDER_REQEX = "/(?<placeholder>{{\s*(?<placeholderName>.+?)(?<attributes>(?:\s+)((?:\w+\s*=\s*(?:'|\"|\&quot;|\&apos;)(?:.[^\"']*|)(?:'|\"|\&quot;|\&apos;)\s*)*))?}}(?:(?<content>.*?){{\s*end_(\g{placeholderName})\s*}})?)/ims";
-    const PLACEHOLDER_REQEX = "/(?<placeholder>{{\s*(?<placeholderName>.+?)\s*(?<attributes>\s+((?:\w+(?:\[(?:\w+)?\])?\s*=\s*(?:'|\"|\&quot;|\&apos;|\&#x27;)(?:.*?)(?<!\\\\)(?:'|\"|\&quot;|\&apos;|\&#x27;)\s*)*))?}}(?:(?<content>.*?){{\s*end_(\g{placeholderName})\s*}})?)/ims";
-
     const ATTRIBUTE_REGEX = "/((?<attr_name>\w+)(?<array>\[(?<array_key>\w+)?\])?)\s*=\s*(?<quote>'|\"|\&quot;|\&apos;|\&#x27;)(?<attr_value>.*?)(\g{quote})(!?\s|$)/mi";
-    //const ATTRIBUTE_REGEX = "/(\w+)\s*=\s*(?<quote>'|\"|\&quot;|\&apos;)(.*?)(\g{quote})/mi";
+
 
     /**
      * @var RegistryInterface
@@ -26,61 +26,64 @@ final class Extractor
      */
     public function __construct($registry)
     {
-        // there was cases were the page had mode that 2Mb of html and
-        // this is making sure the preg_match_all wil work
-        @ini_set('pcre.backtrack_limit', "900000000");
         $this->registry = $registry;
     }
 
     public function stripPlaceholders($content)
     {
-        $expression = self::PLACEHOLDER_REQEX;
+        list($contentPlaceholders, $returnedContent) = $this->extractIgnoringRegistry($content);
 
-        return preg_replace($expression, '', $content);
-    }
+        foreach ($contentPlaceholders as $i => $placeholder) {
+            $placeholderString = $placeholder->getPlaceholder();
+            $pos = strpos($content, $placeholderString);
 
-    /**
-     * @param $content
-     *
-     * @return array
-     */
-    public function extract($content)
-    {
-        $md5Hash = md5( $content );
+            $length = strlen($placeholderString);
 
-        $placeholderInstances = array();
-        $contentPlaceholders = array();
-        $matches = array();
-        $expression = self::PLACEHOLDER_REQEX;
-
-        $count = preg_match_all($expression, $content, $matches);
-
-        if (count($matches['placeholder']) == 0) {
-            return array($contentPlaceholders, [], $content);
+            if ($pos !== false) {
+                $content = substr_replace($content, '', $pos, $length);
+            }
         }
 
-        foreach ($matches['placeholder'] as $i => $name) {
+        return $content;
 
-            $instance = $this->registry->getPlaceholderSupportingName($matches['placeholderName'][$i]);
+    }
 
+    public function extract($content)
+    {
+        $tokens = $this->extractTokens($content);
+        $placeholders = [];
+        for ($i = 0; $i < count($tokens); $i++) {
+            $token = $tokens[$i];
+            $name = $token->getName();
+            switch ($name) {
+                case 'T_PLACEHOLDER':
+                    list($placeholder, $i) = $this->extractPlaceholder($tokens, $i);
+                    $placeholders[] = $placeholder;
+                    break;
+            }
+        }
+        $contentPlaceholders = [];
+        $placeholderInstances = [];
+        foreach ($placeholders as $i => $placeholder) {
+            $instance = $this->registry->getPlaceholderSupportingName($placeholder['name']);
             // ignore unknown placeholders
             if (!$instance) {
                 continue;
             }
             $placeholderInstances[$i] = $instance;
-            $contentPlaceholders[$i] = $placeholder = new ContentPlaceholder(
-                $matches['placeholderName'][$i],
-                $matches['placeholder'][$i],
-                $this->getPlaceholderAttributes($matches['attributes'][$i]),
-                $matches['content'][$i]
+            $contentPlaceholders[$i] = new ContentPlaceholder(
+                $placeholder['name'],
+                $placeholder['original'],
+                $this->getPlaceholderAttributes($placeholder['attributes']),
+                $placeholder['content'] ?? ''
             );
 
-            $pos = strpos($content, $placeholder->getPlaceholder());
+            $pos = strpos($content, $contentPlaceholders[$i]->getPlaceholder());
 
-            $length = strlen($placeholder->getPlaceholder());
+            $length = strlen($contentPlaceholders[$i]->getPlaceholder());
 
             if ($pos !== false) {
-                $content = substr_replace($content, $placeholder->getUid(), $pos, $length);
+                $content = substr_replace($content, $contentPlaceholders[$i]->getUid(), $pos, $length);
             }
         }
 
@@ -89,51 +92,123 @@ final class Extractor
 
     public function extractIgnoringRegistry($content, $callback = null)
     {
-
-        $contentPlaceholders = array();
-        $matches = array();
-        $expression = self::PLACEHOLDER_REQEX;
-
         if (is_null($callback) && !is_callable($callback)) {
             $callback = function (ContentPlaceholder $placeholder) {
                 return $placeholder->getUid();
             };
         }
 
-        preg_match_all($expression, $content, $matches);
-
-        if (count($matches['placeholder']) == 0) {
-            return  array($contentPlaceholders, $content);
+        $tokens = $this->extractTokens($content);
+        $placeholders = [];
+        for ($i = 0; $i < count($tokens); $i++) {
+            $token = $tokens[$i];
+            $name = $token->getName();
+            switch ($name) {
+                case 'T_PLACEHOLDER':
+                    list($placeholder, $i) = $this->extractPlaceholder($tokens, $i);
+                    $placeholders[] = $placeholder;
+                    break;
+            }
         }
-
-        foreach ($matches['placeholder'] as $i => $name) {
-
-            $contentPlaceholders[$i] = $placeholder = new ContentPlaceholder(
-                $matches['placeholderName'][$i],
-                $matches['placeholder'][$i],
-                $this->getPlaceholderAttributes($matches['attributes'][$i]),
-                $matches['content'][$i]
+        $contentPlaceholders = [];
+        foreach ($placeholders as $i => $placeholder) {
+            $contentPlaceholders[$i] = new ContentPlaceholder(
+                $placeholder['name'],
+                $placeholder['original'],
+                $this->getPlaceholderAttributes($placeholder['attributes']),
+                $placeholder['content'] ?? ""
             );
 
-            $pos = strpos($content, $placeholder->getPlaceholder());
+            $pos = strpos($content, $contentPlaceholders[$i]->getPlaceholder());
 
-            $length = strlen($placeholder->getPlaceholder());
+            $length = strlen($contentPlaceholders[$i]->getPlaceholder());
 
             if ($pos !== false) {
-                $content = substr_replace($content, $callback($placeholder), $pos, $length);
+                $content = substr_replace($content, $callback($contentPlaceholders[$i]), $pos, $length);
             }
         }
 
         return array($contentPlaceholders, $content);
     }
 
-    /**
-     * Split the attributs from attribute string
-     *
-     * @param $attributeString
-     *
-     * @return array
-     */
+    private function extractPlaceholder(array $tokens, $start = 0)
+    {
+        $continueIndex = $start;
+        $placeholder = [];
+
+        $token = $tokens[$start];
+
+        $placeholder['name'] = $this->getPlaceholderTokenValue($token);
+        $placeholder['original'] = $token->getValue();
+        $placeholder['attributes'] = $this->getPlaceholderAttrTokenValue($token);
+
+        // check if the placeholder has an end_placeholder
+        $placeholderContent = '';
+        $count = count($tokens);
+        echo "Extract placeholder starting with {$start} having count {$count}\n";
+        for ($i = $start + 1; $i < $count; $i++) {
+            $token = $tokens[$i];
+            $name = $token->getName();
+            switch ($name) {
+                case 'T_PLACEHOLDER':
+                    $pName = $this->getPlaceholderTokenValue($token);
+                    if ($pName == $placeholder['name']) {
+                        list($aPlaceholder, $i) = $this->extractPlaceholder($tokens, $i);
+                        $placeholderContent .= $aPlaceholder['original'];
+                    } else {
+                        $placeholderContent .= $token->getValue();
+                    }
+                    break;
+                case 'T_END_PLACEHOLDER':
+                    $pName = $this->getPlaceholderTokenValue($token);
+                    if ($pName == "end_{$placeholder['name']}") {
+                        $placeholder['content'] = $placeholderContent;
+                        $placeholder['original'] .= $placeholderContent.$token->getValue();
+
+                        return [$placeholder, $i];
+                    } else {
+                        $placeholderContent .= $token->getValue();
+                    }
+                    break;
+                default:
+                    $placeholderContent .= $token->getValue();
+                    break;
+            }
+        }
+
+        return [$placeholder, $continueIndex];
+    }
+
+    private function extractTokens($content)
+    {
+        $lexer = new Lexer([
+            'T_END_PLACEHOLDER' => '{{\s*(?<placeholderName>end_.*?)\s*}}',
+            'T_PLACEHOLDER' => "{{\s*(?<placeholderName>.[^\s]+?)(?:\s(?<placeholderAttrs>.[^}}]+?))?\s*}}",
+            'T_TEXT' => '(?:(?!{{.*?}}).)*',
+        ]);
+
+        /**
+         * @var \Generator $tokens ;
+         */
+        $tokens = $lexer->lex($content);
+
+        return iterator_to_array($tokens);
+    }
+
+    private function getPlaceholderAttrTokenValue(Composite $token)
+    {
+        if ($t = $token->offsetGet(2)) {
+            return $t->getValue();
+        }
+
+        return null;
+    }
+
+    private function getPlaceholderTokenValue(Composite $token)
+    {
+        return $token->offsetGet(0)->getValue();
+    }
+
     private function getPlaceholderAttributes($attributeString)
     {
         $attrString = trim($attributeString);
@@ -162,4 +237,5 @@ final class Extractor
 
         return $attributes;
     }
+
 }

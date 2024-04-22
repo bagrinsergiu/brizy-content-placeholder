@@ -191,3 +191,10 @@ $registry->registerPlaceholder(new PagePropertyPlaceholder());
   
 
 
+
+
+start{{placeholder}}content1
+        {{placeholder}}1
+                {{placeholder attr="123"}}test{{end_placeholder}}2
+        {{end_placeholder}}content2
+{{end_placeholder}}end

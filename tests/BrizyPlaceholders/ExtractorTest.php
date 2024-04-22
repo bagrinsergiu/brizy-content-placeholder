@@ -5,10 +5,14 @@ namespace BrizyPlaceholdersTests\BrizyPlaceholders;
 use BrizyPlaceholders\ContentPlaceholder;
 use BrizyPlaceholders\EmptyContext;
 use BrizyPlaceholders\Extractor;
+use BrizyPlaceholders\ExtractorV2;
 use BrizyPlaceholders\Registry;
 use BrizyPlaceholders\Replacer;
 use BrizyPlaceholdersTests\Sample\LoopPlaceholder;
 use BrizyPlaceholdersTests\Sample\TestPlaceholder;
+use Phplrt\Compiler\Compiler;
+use Phplrt\Lexer\Lexer;
+use Phplrt\Lexer\Token\Composite;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
 use Prophecy\PhpUnit\ProphecyTrait;
@@ -389,10 +393,47 @@ class ExtractorTest extends TestCase
             $returnedContent,
             'It should return correct content'
         );
-
-        $t = 0;
     }
 
+    public function testExtractRecursivePlaceholders()
+    {
+        $registry = new Registry();
+        $extractor = new Extractor($registry);
+        $content = 'start{{placeholder}}content1{{placeholder}}1{{placeholder attr="123"}}test{{end_placeholder}}2{{end_placeholder}}content2{{end_placeholder}}endstart{{placeholder}}content1{{placeholder}}1{{placeholder attr="123"}}test{{end_placeholder}}2{{end_placeholder}}content2{{end_placeholder}}end';
+
+        list($contentPlaceholders, $returnedContent) = $extractor->extractIgnoringRegistry($content);
+
+        $this->assertCount(2, $contentPlaceholders, 'It should return two placeholder');
+        foreach ($contentPlaceholders as $placeholder) {
+            $this->assertEquals(
+                'content1{{placeholder}}1{{placeholder attr="123"}}test{{end_placeholder}}2{{end_placeholder}}content2',
+                $placeholder->getContent(),
+                'It should return the containing content of the first placeholder'
+            );
+        }
+    }
+
+    public function testExtractRecursivePlaceholders2()
+    {
+        $content = 'start{{placeholder  attr1="123"  attr2="456"}}content1{{
+        placeholder
+        }}1{{placeholder attr="123"}}test{{end_placeholder}}2{{end_placeholder}}content2{{end_placeholder}}end';
+        $registry = new Registry();
+        $registry->registerPlaceholder(new TestPlaceholder());
+        $extractor = new Extractor($registry);
+        list($contentPlaceholders, $placeholderInstances, $content) = $extractor->extract($content);
+        $this->assertCount(1, $contentPlaceholders, 'It should return two placeholder');
+    }
+
+    public function testExtractFrom()
+    {
+        $content = file_get_contents('/opt/project/tests/data/user_case6.html');
+        $registry = new Registry();
+        $registry->registerPlaceholder(new TestPlaceholder());
+        $extractor = new Extractor($registry);
+        list($contentPlaceholders, $placeholderInstances, $content) = $extractor->extract($content);
+        $this->assertCount(1, $contentPlaceholders, 'It should return two placeholder');
+    }
+
+
 }
-
-

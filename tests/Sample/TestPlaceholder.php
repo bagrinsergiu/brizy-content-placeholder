@@ -14,7 +14,6 @@ class TestPlaceholder implements PlaceholderInterface
 
     public function __construct($supportedPlaceholder = 'placeholder')
     {
-
         $this->supportedPlaceholder = $supportedPlaceholder;
     }
 
