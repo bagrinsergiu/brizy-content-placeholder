@@ -11,7 +11,7 @@ use Phplrt\Lexer\Token\Composite;
 final class Extractor implements ExtractorInterface
 {
     const ATTRIBUTE_REGEX = "/((?<attr_name>\w+)(?<array>\[(?<array_key>\w+)?\])?)\s*=\s*(?<quote>'|\"|\&quot;|\&apos;|\&#x27;)(?<attr_value>.*?)(\g{quote})(!?\s|$)/mi";
-
+    const SIMPLE_PLACEHOLDERS = [];
 
     /**
      * @var RegistryInterface
@@ -27,6 +27,7 @@ final class Extractor implements ExtractorInterface
     public function __construct($registry)
     {
         $this->registry = $registry;
+        $this->SIMPLE_PLACEHOLDERS = ['placeholder', 'nav_item_url', 'nav_item_title','brizy_dc_image_alt','editor_menu_active_item'];
     }
 
     public function stripPlaceholders($content)
@@ -134,13 +135,13 @@ final class Extractor implements ExtractorInterface
     private function extractPlaceholder(array $tokens, $start = 0)
     {
         $continueIndex = $start;
-        $placeholder = [];
-
         $token = $tokens[$start];
 
-        $placeholder['name'] = $this->getPlaceholderTokenValue($token);
-        $placeholder['original'] = $token->getValue();
-        $placeholder['attributes'] = $this->getPlaceholderAttrTokenValue($token);
+        $placeholder = $this->getPlaceholderFromToken($token);
+
+        if (in_array($placeholder['name'], $this->SIMPLE_PLACEHOLDERS)) {
+            return [$placeholder, $continueIndex];
+        }
 
         // check if the placeholder has an end_placeholder
         $placeholderContent = '';
@@ -177,6 +178,16 @@ final class Extractor implements ExtractorInterface
         }
 
         return [$placeholder, $continueIndex];
+    }
+
+    private function getPlaceholderFromToken($token)
+    {
+        $placeholder = [];
+        $placeholder['name'] = $this->getPlaceholderTokenValue($token);
+        $placeholder['original'] = $token->getValue();
+        $placeholder['attributes'] = $this->getPlaceholderAttrTokenValue($token);
+
+        return $placeholder;
     }
 
     private function extractTokens($content)

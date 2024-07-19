@@ -9,6 +9,7 @@ use BrizyPlaceholders\ExtractorV2;
 use BrizyPlaceholders\Registry;
 use BrizyPlaceholders\Replacer;
 use BrizyPlaceholdersTests\Sample\LoopPlaceholder;
+use BrizyPlaceholdersTests\Sample\Placeholder;
 use BrizyPlaceholdersTests\Sample\TestPlaceholder;
 use Phplrt\Compiler\Compiler;
 use Phplrt\Lexer\Lexer;
@@ -415,6 +416,29 @@ class ExtractorTest extends TestCase
 
     public function testExtractRecursivePlaceholders2()
     {
+        $content = 'start{{placeholder  attr1="123"  attr2="456"}}content1
+                            {{placeholder}}
+                         {{end_placeholder}}end';
+        $registry = new Registry();
+        $registry->registerPlaceholder(new TestPlaceholder());
+        $extractor = new Extractor($registry);
+        list($contentPlaceholders, $placeholderInstances, $content) = $extractor->extract($content);
+
+        $this->assertCount(2, $contentPlaceholders, 'It should return two placeholder');
+        $this->assertStringNotContainsString(
+            "placeholder",
+            $content,
+            'It should return the content with the placeholder replaced'
+        );
+        $this->assertStringNotContainsString(
+            "end_placeholder",
+            $content,
+            'It should return the content with the end_placeholder replaced'
+        );
+    }
+
+    public function testExtractRecursivePlaceholders3()
+    {
         $content = 'start{{placeholder  attr1="123"  attr2="456"}}content1{{
         placeholder
         }}1{{placeholder attr="123"}}test{{end_placeholder}}2{{end_placeholder}}content2{{end_placeholder}}end';
@@ -423,15 +447,44 @@ class ExtractorTest extends TestCase
         $extractor = new Extractor($registry);
         list($contentPlaceholders, $placeholderInstances, $content) = $extractor->extract($content);
         $this->assertCount(1, $contentPlaceholders, 'It should return two placeholder');
+        $this->assertStringNotContainsString(
+            "placeholder",
+            $content,
+            'It should return the content with the placeholder replaced'
+        );
+        $this->assertStringNotContainsString(
+            "end_placeholder",
+            $content,
+            'It should return the content with the end_placeholder replaced'
+        );
     }
 
     public function testExtractFrom()
     {
         $content = file_get_contents('/opt/project/tests/data/user_case6.html');
         $registry = new Registry();
-        $registry->registerPlaceholder(new TestPlaceholder());
+        $registry->registerPlaceholder(new Placeholder());
+        //$registry->registerPlaceholder(new TestPlaceholder());
         $extractor = new Extractor($registry);
         list($contentPlaceholders, $placeholderInstances, $content) = $extractor->extract($content);
+
+        $context = new EmptyContext();
+        $replacer = new Replacer($registry);
+        $content = $replacer->replaceWithExtractedData($contentPlaceholders, $placeholderInstances, $content, $context);
+
+        $this->assertCount(1, $contentPlaceholders, 'It should return two placeholder');
+    }
+
+
+    public function testExtractFrom2()
+    {
+        $content = file_get_contents('/opt/project/tests/data/user_case7.html');
+        $registry = new Registry();
+        $registry->registerPlaceholder(new Placeholder());
+        //$registry->registerPlaceholder(new TestPlaceholder());
+        $extractor = new Extractor($registry);
+        list($contentPlaceholders, $placeholderInstances, $content) = $extractor->extract($content);
+
         $this->assertCount(1, $contentPlaceholders, 'It should return two placeholder');
     }
 
