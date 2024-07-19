@@ -144,7 +144,6 @@ final class Extractor implements ExtractorInterface
         $token = $tokens[$start];
         $count = count($tokens);
         $placeholder = $this->getPlaceholderFromToken($token);
-        echo "Extract placeholder starting with {$placeholder['name']}[{$start}] having count {$count}\n";
         if (in_array($placeholder['name'], $this->SIMPLE_PLACEHOLDERS)) {
             return [$placeholder, $continueIndex];
         }
