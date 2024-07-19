@@ -365,7 +365,8 @@ class ExtractorTest extends TestCase
 
         $registry = new Registry();
         $extractor = new Extractor($registry);
-        $content = "{{ placeholder }}content1  {{ middle_placeholder }}content inner{{ end_placeholder }}  {{placeholder_loop}} xxxxx {{end_placeholder_loop}} content2";
+        $content = "{{ placeholder1 }}content1  {{ middle_placeholder }}content inner{{ end_placeholder1 }}  
+                        {{placeholder_loop}} xxxxx {{end_placeholder_loop}} content2";
 
         list($contentPlaceholders, $returnedContent) = $extractor->extractIgnoringRegistry($content);
 
@@ -379,7 +380,7 @@ class ExtractorTest extends TestCase
 
         $registry = new Registry();
         $extractor = new Extractor($registry);
-        $content = "content {{ placeholder }}content1 {{ middle_placeholder }}content inner{{ end_placeholder }} {{placeholder_loop}} xxxxx {{end_placeholder_loop}} content2";
+        $content = "content {{ placeholder1 }}content1 {{ middle_placeholder }}content inner{{ end_placeholder1 }} {{placeholder_loop}} xxxxx {{end_placeholder_loop}} content2";
 
         list($contentPlaceholders, $returnedContent) = $extractor->extractIgnoringRegistry(
             $content,
@@ -390,7 +391,7 @@ class ExtractorTest extends TestCase
 
         $this->assertCount(2, $contentPlaceholders, 'It should return one placeholder');
         $this->assertEquals(
-            "content placeholder placeholder_loop content2",
+            "content placeholder1 placeholder_loop content2",
             $returnedContent,
             'It should return correct content'
         );
@@ -400,14 +401,14 @@ class ExtractorTest extends TestCase
     {
         $registry = new Registry();
         $extractor = new Extractor($registry);
-        $content = 'start{{placeholder}}content1{{placeholder}}1{{placeholder attr="123"}}test{{end_placeholder}}2{{end_placeholder}}content2{{end_placeholder}}endstart{{placeholder}}content1{{placeholder}}1{{placeholder attr="123"}}test{{end_placeholder}}2{{end_placeholder}}content2{{end_placeholder}}end';
+        $content = 'start{{placeholder_a}}content1{{placeholder_a}}1{{placeholder_a attr="123"}}test{{end_placeholder_a}}2{{end_placeholder_a}}content2{{end_placeholder_a}}endstart{{placeholder_a}}content1{{placeholder_a}}1{{placeholder_a attr="123"}}test{{end_placeholder_a}}2{{end_placeholder_a}}content2{{end_placeholder_a}}end';
 
         list($contentPlaceholders, $returnedContent) = $extractor->extractIgnoringRegistry($content);
 
         $this->assertCount(2, $contentPlaceholders, 'It should return two placeholder');
         foreach ($contentPlaceholders as $placeholder) {
             $this->assertEquals(
-                'content1{{placeholder}}1{{placeholder attr="123"}}test{{end_placeholder}}2{{end_placeholder}}content2',
+                'content1{{placeholder_a}}1{{placeholder_a attr="123"}}test{{end_placeholder_a}}2{{end_placeholder_a}}content2',
                 $placeholder->getContent(),
                 'It should return the containing content of the first placeholder'
             );
@@ -416,9 +417,10 @@ class ExtractorTest extends TestCase
 
     public function testExtractRecursivePlaceholders2()
     {
-        $content = 'start{{placeholder  attr1="123"  attr2="456"}}content1
-                            {{placeholder}}
-                         {{end_placeholder}}end';
+        $content = 'start{{placeholder1  attr1="123"  attr2="456"}}
+                            content1
+                            {{placeholder1}}
+                         {{end_placeholder1}}end';
         $registry = new Registry();
         $registry->registerPlaceholder(new TestPlaceholder());
         $extractor = new Extractor($registry);
@@ -439,9 +441,7 @@ class ExtractorTest extends TestCase
 
     public function testExtractRecursivePlaceholders3()
     {
-        $content = 'start{{placeholder  attr1="123"  attr2="456"}}content1{{
-        placeholder
-        }}1{{placeholder attr="123"}}test{{end_placeholder}}2{{end_placeholder}}content2{{end_placeholder}}end';
+        $content = 'start{{placeholder_a  attr1="123"  attr2="456"}}content1{{placeholder_a}}1{{placeholder_a attr="123"}}test{{end_placeholder_a}}2{{end_placeholder_a}}content2{{end_placeholder_a}}end';
         $registry = new Registry();
         $registry->registerPlaceholder(new TestPlaceholder());
         $extractor = new Extractor($registry);
@@ -459,33 +459,16 @@ class ExtractorTest extends TestCase
         );
     }
 
-    public function testExtractFrom()
-    {
-        $content = file_get_contents('/opt/project/tests/data/user_case6.html');
-        $registry = new Registry();
-        $registry->registerPlaceholder(new Placeholder());
-        //$registry->registerPlaceholder(new TestPlaceholder());
-        $extractor = new Extractor($registry);
-        list($contentPlaceholders, $placeholderInstances, $content) = $extractor->extract($content);
 
-        $context = new EmptyContext();
-        $replacer = new Replacer($registry);
-        $content = $replacer->replaceWithExtractedData($contentPlaceholders, $placeholderInstances, $content, $context);
-
-        $this->assertCount(1, $contentPlaceholders, 'It should return two placeholder');
-    }
-
-
-    public function testExtractFrom2()
+    public function testExtractFromHtml()
     {
         $content = file_get_contents('/opt/project/tests/data/user_case7.html');
         $registry = new Registry();
-        $registry->registerPlaceholder(new Placeholder());
-        //$registry->registerPlaceholder(new TestPlaceholder());
+        $registry->registerPlaceholder(new TestPlaceholder());
         $extractor = new Extractor($registry);
-        list($contentPlaceholders, $placeholderInstances, $content) = $extractor->extract($content);
+        list($contentPlaceholders, $content) = $extractor->extractIgnoringRegistry($content);
 
-        $this->assertCount(1, $contentPlaceholders, 'It should return two placeholder');
+        $this->assertCount(14, $contentPlaceholders, 'It should return two placeholder');
     }
 
 

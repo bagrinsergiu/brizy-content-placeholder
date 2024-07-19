@@ -27,7 +27,13 @@ final class Extractor implements ExtractorInterface
     public function __construct($registry)
     {
         $this->registry = $registry;
-        $this->SIMPLE_PLACEHOLDERS = ['placeholder', 'nav_item_url', 'nav_item_title','brizy_dc_image_alt','editor_menu_active_item'];
+        $this->SIMPLE_PLACEHOLDERS = [
+            'placeholder',
+            'nav_item_url',
+            'nav_item_title',
+            'brizy_dc_image_alt',
+            'editor_menu_active_item',
+        ];
     }
 
     public function stripPlaceholders($content)
@@ -99,7 +105,7 @@ final class Extractor implements ExtractorInterface
             };
         }
 
-        $tokens = $this->extractTokens($content);
+       $tokens = $this->extractTokens($content);
         $placeholders = [];
         for ($i = 0; $i < count($tokens); $i++) {
             $token = $tokens[$i];
@@ -136,17 +142,17 @@ final class Extractor implements ExtractorInterface
     {
         $continueIndex = $start;
         $token = $tokens[$start];
-
+        $count = count($tokens);
         $placeholder = $this->getPlaceholderFromToken($token);
-
+        echo "Extract placeholder starting with {$placeholder['name']}[{$start}] having count {$count}\n";
         if (in_array($placeholder['name'], $this->SIMPLE_PLACEHOLDERS)) {
             return [$placeholder, $continueIndex];
         }
 
         // check if the placeholder has an end_placeholder
         $placeholderContent = '';
-        $count = count($tokens);
-        echo "Extract placeholder starting with {$start} having count {$count}\n";
+
+
         for ($i = $start + 1; $i < $count; $i++) {
             $token = $tokens[$i];
             $name = $token->getName();
@@ -154,11 +160,13 @@ final class Extractor implements ExtractorInterface
                 case 'T_PLACEHOLDER':
                     $pName = $this->getPlaceholderTokenValue($token);
                     if ($pName == $placeholder['name']) {
+                        // here we have recursive placeholders
                         list($aPlaceholder, $i) = $this->extractPlaceholder($tokens, $i);
                         $placeholderContent .= $aPlaceholder['original'];
                     } else {
                         $placeholderContent .= $token->getValue();
                     }
+                    //$continueIndex = $i;
                     break;
                 case 'T_END_PLACEHOLDER':
                     $pName = $this->getPlaceholderTokenValue($token);
@@ -170,15 +178,91 @@ final class Extractor implements ExtractorInterface
                     } else {
                         $placeholderContent .= $token->getValue();
                     }
+                   // $continueIndex = $i;
                     break;
                 default:
                     $placeholderContent .= $token->getValue();
+                    //$continueIndex = $i;
                     break;
             }
         }
 
         return [$placeholder, $continueIndex];
     }
+
+
+    private function extractPlaceholder2(array $tokens, $start = 0)
+    {
+        $continueIndex = $start;
+        $token = $tokens[$start];
+        $count = count($tokens);
+        $placeholder = $this->getPlaceholderFromToken($token);
+
+        if (in_array($placeholder['name'], $this->SIMPLE_PLACEHOLDERS)) {
+            return [$placeholder, $continueIndex];
+        }
+
+        $recursionPos = $this->searchForPlaceholder($tokens, $placeholder['name'], $start + 1);
+        $endPlaceholder = $this->searchForPlaceholder($tokens, "end_{$placeholder['name']}", $start + 1);
+
+        if ($recursionPos === false && $endPlaceholder === false) {
+            return [$placeholder, $continueIndex];
+        }
+
+        if ($recursionPos === false && $endPlaceholder !== false) {
+            $placeholder['content'] = $this->collectContent($tokens, $start + 1, $endPlaceholder);
+
+            return [$placeholder, $continueIndex];
+        }
+
+        if ($recursionPos !== false && $endPlaceholder !== false) {
+            if ($recursionPos < $endPlaceholder) {
+                // recursion
+            } else {
+
+            }
+
+            $placeholder['content'] = $this->collectContent($tokens, $start + 1, $endPlaceholder);
+
+            return [$placeholder, $continueIndex];
+        }
+
+
+        return [$placeholder, $continueIndex];
+    }
+
+
+    private function searchForPlaceholder($tokens, $placeholderName, $start = 0)
+    {
+        $count = count($tokens);
+        for ($i = $start; $i < $count; $i++) {
+            $token = $tokens[$i];
+            $name = $token->getName();
+            switch ($name) {
+                case 'T_END_PLACEHOLDER':
+                case 'T_PLACEHOLDER':
+                    $pName = $this->getPlaceholderTokenValue($token);
+                    if ($pName == $placeholderName) {
+                        return $i;
+                    }
+                    break;
+            }
+        }
+
+        return false;
+    }
+
+    private function collectContent($tokens, $start, $end)
+    {
+        $placeholderContent = '';
+        for ($i = $start; $i < $end; $i++) {
+            $token = $tokens[$i];
+            $placeholderContent .= $token->getValue();
+        }
+
+        return $placeholderContent;
+    }
+
 
     private function getPlaceholderFromToken($token)
     {
