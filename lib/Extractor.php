@@ -81,7 +81,7 @@ final class Extractor implements ExtractorInterface
             $contentPlaceholders[$i] = new ContentPlaceholder(
                 $placeholder['name'],
                 $placeholder['original'],
-                $this->getPlaceholderAttributes($placeholder['attributes']),
+                $placeholder['attributes']?$this->getPlaceholderAttributes($placeholder['attributes']):[],
                 $placeholder['content'] ?? ''
             );
 
@@ -105,7 +105,7 @@ final class Extractor implements ExtractorInterface
             };
         }
 
-       $tokens = $this->extractTokens($content);
+        $tokens = $this->extractTokens($content);
         $placeholders = [];
         for ($i = 0; $i < count($tokens); $i++) {
             $token = $tokens[$i];
@@ -122,7 +122,7 @@ final class Extractor implements ExtractorInterface
             $contentPlaceholders[$i] = new ContentPlaceholder(
                 $placeholder['name'],
                 $placeholder['original'],
-                $this->getPlaceholderAttributes($placeholder['attributes']),
+                $placeholder['attributes']?$this->getPlaceholderAttributes($placeholder['attributes']):[],
                 $placeholder['content'] ?? ""
             );
 
