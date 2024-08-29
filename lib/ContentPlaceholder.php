@@ -200,7 +200,7 @@ final class ContentPlaceholder
 
         $placeholder = "{{" . $placeholderName . $attrs . "}}";
 
-        if ($content = trim($this->getContent())) {
+        if ($content = trim((string)$this->getContent())) {
             $placeholder = "{$placeholder}$content" . '{{end_' . $placeholderName . '}}';
         }
 
