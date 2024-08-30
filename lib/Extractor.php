@@ -26,6 +26,8 @@ final class Extractor implements ExtractorInterface
      */
     public function __construct($registry)
     {
+        @ini_set("pcre.jit", 0);
+
         $this->registry = $registry;
         $this->SIMPLE_PLACEHOLDERS = [
             'placeholder',
@@ -185,7 +187,6 @@ final class Extractor implements ExtractorInterface
                     break;
             }
         }
-
         return [$placeholder, $continueIndex];
     }
 

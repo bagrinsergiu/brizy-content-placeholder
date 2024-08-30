@@ -470,6 +470,4 @@ class ExtractorTest extends TestCase
 
         $this->assertCount(14, $contentPlaceholders, 'It should return two placeholder');
     }
-
-
 }
