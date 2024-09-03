@@ -4,6 +4,7 @@ namespace BrizyPlaceholders;
 
 use Phplrt\Lexer\Lexer;
 use Phplrt\Lexer\Token\Composite;
+use Phplrt\Lexer\Token\Token;
 
 /**
  * Class Extractor
@@ -11,7 +12,7 @@ use Phplrt\Lexer\Token\Composite;
 final class Extractor implements ExtractorInterface
 {
     const ATTRIBUTE_REGEX = "/((?<attr_name>\w+)(?<array>\[(?<array_key>\w+)?\])?)\s*=\s*(?<quote>'|\"|\&quot;|\&apos;|\&#x27;)(?<attr_value>.*?)(\g{quote})(!?\s|$)/mi";
-    const SIMPLE_PLACEHOLDERS = [];
+    private $SIMPLE_PLACEHOLDERS = [];
 
     /**
      * @var RegistryInterface
@@ -26,11 +27,13 @@ final class Extractor implements ExtractorInterface
      */
     public function __construct($registry)
     {
-        @ini_set("pcre.jit", 0);
+        //@ini_set("pcre.jit", 0);
 
         $this->registry = $registry;
         $this->SIMPLE_PLACEHOLDERS = [
             'placeholder',
+            'asset_url',
+            'brizy_dc_global_blocks',
             'nav_item_url',
             'nav_item_title',
             'brizy_dc_image_alt',
@@ -83,7 +86,7 @@ final class Extractor implements ExtractorInterface
             $contentPlaceholders[$i] = new ContentPlaceholder(
                 $placeholder['name'],
                 $placeholder['original'],
-                $placeholder['attributes']?$this->getPlaceholderAttributes($placeholder['attributes']):[],
+                $placeholder['attributes'] ? $this->getPlaceholderAttributes($placeholder['attributes']) : [],
                 $placeholder['content'] ?? ''
             );
 
@@ -108,6 +111,7 @@ final class Extractor implements ExtractorInterface
         }
 
         $tokens = $this->extractTokens($content);
+
         $placeholders = [];
         for ($i = 0; $i < count($tokens); $i++) {
             $token = $tokens[$i];
@@ -124,7 +128,7 @@ final class Extractor implements ExtractorInterface
             $contentPlaceholders[$i] = new ContentPlaceholder(
                 $placeholder['name'],
                 $placeholder['original'],
-                $placeholder['attributes']?$this->getPlaceholderAttributes($placeholder['attributes']):[],
+                $placeholder['attributes'] ? $this->getPlaceholderAttributes($placeholder['attributes']) : [],
                 $placeholder['content'] ?? ""
             );
 
@@ -179,7 +183,7 @@ final class Extractor implements ExtractorInterface
                     } else {
                         $placeholderContent .= $token->getValue();
                     }
-                   // $continueIndex = $i;
+                    // $continueIndex = $i;
                     break;
                 default:
                     $placeholderContent .= $token->getValue();
@@ -187,6 +191,7 @@ final class Extractor implements ExtractorInterface
                     break;
             }
         }
+
         return [$placeholder, $continueIndex];
     }
 
@@ -279,7 +284,7 @@ final class Extractor implements ExtractorInterface
         $lexer = new Lexer([
             'T_END_PLACEHOLDER' => '{{\s*(?<placeholderName>end_.*?)\s*}}',
             'T_PLACEHOLDER' => "{{\s*(?<placeholderName>.[^\s]+?)(?:\s(?<placeholderAttrs>.[^}}]+?))?\s*}}",
-            'T_TEXT' => '(?:(?!{{.*?}}).)*',
+            'T_TEXT' => '(?<=}}).*?(?={{)|.*?(?={{)|(?<=}}).*|.*',
         ]);
 
         /**
@@ -299,9 +304,16 @@ final class Extractor implements ExtractorInterface
         return null;
     }
 
-    private function getPlaceholderTokenValue(Composite $token)
+    private function getPlaceholderTokenValue($token)
     {
-        return $token->offsetGet(0)->getValue();
+        if ($token instanceof Composite) {
+            return $token->offsetGet(0)->getValue();
+        }
+        if ($token instanceof Token) {
+            return $token->getValue();
+        }
+
+        return null;
     }
 
     private function getPlaceholderAttributes($attributeString)
