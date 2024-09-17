@@ -10,6 +10,7 @@ use BrizyPlaceholders\Registry;
 use BrizyPlaceholders\Replacer;
 use BrizyPlaceholdersTests\Sample\LoopPlaceholder;
 use BrizyPlaceholdersTests\Sample\Placeholder;
+use BrizyPlaceholdersTests\Sample\PlaceholderWrapper;
 use BrizyPlaceholdersTests\Sample\TestPlaceholder;
 use Phplrt\Compiler\Compiler;
 use Phplrt\Lexer\Lexer;
@@ -489,4 +490,5 @@ class ExtractorTest extends TestCase
 
         $this->assertCount(411, $contentPlaceholders, 'It should return 43 placeholder');
     }
+
 }
