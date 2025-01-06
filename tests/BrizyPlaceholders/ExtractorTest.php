@@ -490,5 +490,14 @@ class ExtractorTest extends TestCase
 
         $this->assertCount(411, $contentPlaceholders, 'It should return 43 placeholder');
     }
+    public function testExtractFromBigHtml3()
+    {
+        $content = file_get_contents('/opt/project/tests/data/user_case12.html');
+        $registry = new Registry();
+        $extractor = new Extractor($registry);
+        list($contentPlaceholders, $content) = $extractor->extractIgnoringRegistry($content);
+
+        $this->assertCount(50, $contentPlaceholders, 'It should return 50 placeholder');
+    }
 
 }
