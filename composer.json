@@ -10,7 +10,8 @@
   "require": {
     "php": ">=7.1.0",
     "phplrt/lexer": "^2.3.6",
-    "phplrt/compiler": "^2.3.6"
+    "phplrt/compiler": "^2.3.6",
+    "psr/log": "^1 || ^2 || ^3"
   },
   "require-dev": {
     "php": ">=8",
