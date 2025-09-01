@@ -2,6 +2,7 @@
 
 namespace BrizyPlaceholders;
 
+use OpenSwoole\Core\Coroutine\WaitGroup;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -9,6 +10,8 @@ use Psr\Log\LoggerInterface;
  */
 final class Replacer
 {
+    private static $inCoRoutine = false;
+
     /**
      * @var ContextInterface
      */
@@ -60,39 +63,50 @@ final class Replacer
      */
     public function replaceWithExtractedData(array $contentPlaceholders, array $instancePlaceholders, $contentAfterExtractor, ContextInterface $context)
     {
-        $toReplace = array();
-        $toReplaceWithValues = array();
-        foreach ($contentPlaceholders as $index => $contentPlaceholder) {
-            try {
-                $toReplace[] = $contentPlaceholder->getUid();
-                /**
-                 * @var PlaceholderInterface $instancePlaceholder ;
-                 */
-                $instancePlaceholder = $instancePlaceholders[$index];
-                if ($instancePlaceholder) {
-                    $value = $instancePlaceholder->getValue($context, $contentPlaceholder);
+        $values = array();
+        $closure = function () use ($context, $contentPlaceholders, $instancePlaceholders, &$values) {
 
-                    if ($instancePlaceholder->shouldFallbackValue($value, $context, $contentPlaceholder)) {
-                        $toReplaceWithValues[] = $instancePlaceholder->getFallbackValue($context, $contentPlaceholder);
-                    } else {
-                        $toReplaceWithValues[] = $value;
+            $wg = new WaitGroup();
+            foreach ($contentPlaceholders as $index => $contentPlaceholder) {
+                try {
+
+                    $toReplace[] = $uid = $contentPlaceholder->getUid();
+                    /**
+                     * @var PlaceholderInterface $instancePlaceholder ;
+                     */
+                    $instancePlaceholder = $instancePlaceholders[$index];
+                    if ($instancePlaceholder) {
+                        go(function () use ($wg, $uid, $instancePlaceholder, $context, $contentPlaceholder,  &$values) {
+                            $wg->add();
+                            $value = $instancePlaceholder->getValue($context, $contentPlaceholder);
+
+                            if ($instancePlaceholder->shouldFallbackValue($value, $context, $contentPlaceholder)) {
+                                $values[$uid] = $instancePlaceholder->getFallbackValue($context, $contentPlaceholder);
+                            } else {
+                                $values[$uid] = $value;
+                            }
+                            $wg->done();
+                        });
                     }
-                } else {
-                    $toReplaceWithValues[] = '';
-                }
 
-            } catch (\Exception $e) {
-                if ($this->logger) {
-                    $this->logger->error($e->getMessage(),['placeholder' => $contentPlaceholder->getName(),'attributes' => $contentPlaceholder->getAttributes()]);
+                } catch (\Exception $e) {
+                    if ($this->logger) {
+                        $this->logger->error($e->getMessage(), ['placeholder' => $contentPlaceholder->getName(), 'attributes' => $contentPlaceholder->getAttributes()]);
+                    }
+                    continue;
                 }
-                array_pop($toReplace);
-                continue;
             }
+            $wg->wait(1000);
+
+            Replacer::$inCoRoutine = false;
+        };
+        if (self::$inCoRoutine) {
+            $closure();
+        } else {
+            self::$inCoRoutine = true;
+            \co::run($closure);
         }
-
-        $content = str_replace($toReplace, $toReplaceWithValues, $contentAfterExtractor);
-
+        $content = str_replace(array_keys($values), array_values($values), $contentAfterExtractor);
         return $content;
     }
-
 }

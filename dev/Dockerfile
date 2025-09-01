@@ -16,7 +16,9 @@ RUN apt-get update && apt-get install -y \
 
 
 RUN pecl install xdebug-3.3.0
-RUN docker-php-ext-enable xdebug
+RUN pecl install openswoole-25.2.0
+#RUN docker-php-ext-enable xdebug
+RUN docker-php-ext-enable openswoole
 
 ENV APP_ENV: dev
 ENV PHP_IDE_CONFIG: serverName=_

@@ -60,7 +60,8 @@ final class Extractor implements ExtractorInterface
     {
         $tokens = $this->extractTokens($content);
         $placeholders = [];
-        for ($i = 0; $i < count($tokens); $i++) {
+        $count = count($tokens);
+        for ($i = 0; $i < $count; $i++) {
             $token = $tokens[$i];
             $name = $token->getName();
             switch ($name) {

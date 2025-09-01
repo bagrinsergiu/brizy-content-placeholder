@@ -52,7 +52,10 @@ class TestPlaceholder implements PlaceholderInterface
      */
     public function getValue(ContextInterface $context, ContentPlaceholder $placeholder)
     {
-        return 'placeholder_value';
+        //usleep(1000*10); //simulate some processing time
+        $attribute = $placeholder->getAttribute('content');
+        $base64_decode = base64_decode($attribute);
+        return $base64_decode;
     }
 
     public function shouldFallbackValue($value, ContextInterface $context, ContentPlaceholder $placeholder)
@@ -103,6 +106,12 @@ class TestPlaceholder implements PlaceholderInterface
     }
 
     public function getVaryAttributes() {
+        return [];
+    }
+
+    public function getDependencies(): array
+    {
+        // TODO: Implement getDependencies() method.
         return [];
     }
 }
