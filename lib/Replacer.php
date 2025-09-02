@@ -70,7 +70,7 @@ final class Replacer
             foreach ($contentPlaceholders as $index => $contentPlaceholder) {
                 try {
 
-                    $toReplace[] = $uid = $contentPlaceholder->getUid();
+                    $uid = $contentPlaceholder->getUid();
                     /**
                      * @var PlaceholderInterface $instancePlaceholder ;
                      */

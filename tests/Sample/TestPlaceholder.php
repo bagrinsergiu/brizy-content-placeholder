@@ -1,4 +1,5 @@
 <?php
+
 namespace BrizyPlaceholdersTests\Sample;
 
 use BrizyPlaceholders\ContentPlaceholder;
@@ -38,7 +39,7 @@ class TestPlaceholder implements PlaceholderInterface
      */
     public function support($placeholderName)
     {
-        return strpos($placeholderName, $this->supportedPlaceholder) === 0 && $placeholderName!=='placeholder_loop';
+        return strpos($placeholderName, $this->supportedPlaceholder) === 0 && $placeholderName !== 'placeholder_loop';
     }
 
 
@@ -46,7 +47,7 @@ class TestPlaceholder implements PlaceholderInterface
      * Return the string value that will replace the placeholder name in content
      *
      * @param ContextInterface $context
-     * @param ContentPlaceholder  $placeholder
+     * @param ContentPlaceholder $placeholder
      *
      * @return mixed
      */
@@ -54,8 +55,10 @@ class TestPlaceholder implements PlaceholderInterface
     {
         //usleep(1000*10); //simulate some processing time
         $attribute = $placeholder->getAttribute('content');
-        $base64_decode = base64_decode($attribute);
-        return $base64_decode;
+        if ($attribute) {
+            return base64_decode($attribute);
+        }
+        return '';
     }
 
     public function shouldFallbackValue($value, ContextInterface $context, ContentPlaceholder $placeholder)
@@ -105,7 +108,8 @@ class TestPlaceholder implements PlaceholderInterface
         return md5(serialize($this));
     }
 
-    public function getVaryAttributes() {
+    public function getVaryAttributes()
+    {
         return [];
     }
 

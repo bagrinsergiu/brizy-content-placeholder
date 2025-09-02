@@ -119,4 +119,10 @@ class LoopPlaceholder implements PlaceholderInterface
         ];
     }
 
+    public function getDependencies(): array
+    {
+        // TODO: Implement getDependencies() method.
+        return [];
+    }
+
 }
