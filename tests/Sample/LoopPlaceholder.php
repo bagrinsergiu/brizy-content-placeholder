@@ -28,7 +28,7 @@ class LoopPlaceholder implements PlaceholderInterface
      *
      * @return mixed
      */
-    public function support($placeholderName)
+    static public function support($placeholderName)
     {
         return strpos($placeholderName, 'placeholder_loop') === 0;
     }
@@ -119,4 +119,10 @@ class LoopPlaceholder implements PlaceholderInterface
         ];
     }
 
+    public function getDependencies(): array
+    {
+        // TODO: Implement getDependencies() method.
+
+        return [];
+    }
 }

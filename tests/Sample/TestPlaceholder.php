@@ -10,11 +10,11 @@ class TestPlaceholder implements PlaceholderInterface
     /**
      * @var null
      */
-    private $supportedPlaceholder;
+    static private $supportedPlaceholder;
 
     public function __construct($supportedPlaceholder = 'placeholder')
     {
-        $this->supportedPlaceholder = $supportedPlaceholder;
+        self::$supportedPlaceholder = $supportedPlaceholder;
     }
 
     public function getConfigStructure()
@@ -36,9 +36,9 @@ class TestPlaceholder implements PlaceholderInterface
      *
      * @return mixed
      */
-    public function support($placeholderName)
+    static public function support($placeholderName)
     {
-        return strpos($placeholderName, $this->supportedPlaceholder) === 0 && $placeholderName!=='placeholder_loop';
+        return strpos($placeholderName, self::$supportedPlaceholder) === 0 && $placeholderName!=='placeholder_loop';
     }
 
 
@@ -103,6 +103,12 @@ class TestPlaceholder implements PlaceholderInterface
     }
 
     public function getVaryAttributes() {
+        return [];
+    }
+
+    public function getDependencies(): array
+    {
+        // TODO: Implement getDependencies() method.
         return [];
     }
 }

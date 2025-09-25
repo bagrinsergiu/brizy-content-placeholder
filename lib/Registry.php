@@ -8,13 +8,13 @@ namespace BrizyPlaceholders;
  */
 class Registry implements RegistryInterface
 {
-
     /**
-     * @var PlaceholderInterface[]
+     * @var array <string, callable> List of placeholder class names and their factories
      */
-    public $placeholders = [];
+    private $placeholderClasses = [];
 
     /**
+     * @deprecated
      * @param PlaceholderInterface $instance
      * @param string $label
      * @param string $placeholderName
@@ -24,26 +24,31 @@ class Registry implements RegistryInterface
      */
     public function registerPlaceholder(PlaceholderInterface $instance)
     {
-        $this->placeholders[] = $instance;
+        $this->registerPlaceholderClass(get_class($instance), function () use ($instance) {
+            return $instance;
+        });
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function getPlaceholders()
+    public function registerPlaceholderClass(string $placeholderClass, callable $factory)
     {
-        return $this->placeholders;
+        $this->placeholderClasses[$placeholderClass] = $factory;
     }
 
     /**
+     * @return PlaceholderInterface|null
      * @inheritDoc
      */
     public function getPlaceholderSupportingName($name)
     {
-        foreach ($this->placeholders as $aplaceholder) {
-            if ($aplaceholder->support($name)) {
-                return $aplaceholder;
+        foreach ($this->placeholderClasses as $class => $factory) {
+            /**
+             * @var PlaceholderInterface $class
+             */
+            if ($class::support($name)) {
+                return $factory();
             }
         }
+
+        return null;
     }
 }

@@ -4,6 +4,7 @@ namespace BrizyPlaceholders;
 interface RegistryInterface
 {
     /**
+     * @deprecated
      * Register a placeholder class
      *
      * @param PlaceholderInterface $instance
@@ -15,14 +16,9 @@ interface RegistryInterface
      */
     public function registerPlaceholder(PlaceholderInterface $instance);
 
-    /**
-     * Return all placeholders
-     *
-     * @return PlaceholderInterface[]
-     */
-    public function getPlaceholders();
+    public function registerPlaceholderClass(string $placeholderClass, callable $factory);
 
-    /**
+     /**
      * It will return first placeholder that supports the $name;
      *
      * @param $name

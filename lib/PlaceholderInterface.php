@@ -13,7 +13,7 @@ interface PlaceholderInterface
      *
      * @return mixed
      */
-    public function support($placeholderName);
+    static public function support($placeholderName);
 
     /**
      * Return the string value that will replace the placeholder name in content
