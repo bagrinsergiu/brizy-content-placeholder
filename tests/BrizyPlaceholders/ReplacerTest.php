@@ -71,9 +71,11 @@ class ReplacerTest extends TestCase
     public function testReplaceWithRegisteredPlaceholders()
     {
         $registry = new Registry();
-        $registry->registerPlaceholderClass( TestPlaceholder::class, function() {;
+        $factory = function () {
             return new TestPlaceholder('placeholder');
-        });
+        };
+        $registry->registerPlaceholderName( 'placeholder', $factory);
+        $registry->registerPlaceholderName( 'placeholder_234', $factory);
         $replacer = new Replacer($registry);
 
         $content = "Some content with {{placeholder}} and {{placeholder_234}}.";
@@ -90,12 +92,12 @@ class ReplacerTest extends TestCase
     public function testReplaceWithLoopPlaceholder()
     {
         $registry = new Registry();
-        $registry->registerPlaceholderClass( TestPlaceholder::class, function() {;
+        $registry->registerPlaceholderName( 'placeholder', function() {;
             return new TestPlaceholder('placeholder');
         });
         $replacer = new Replacer($registry);
 
-         $registry->registerPlaceholderClass( LoopPlaceholder::class, function() use ($replacer) {;
+         $registry->registerPlaceholderName( 'placeholder_loop', function() use ($replacer) {;
             return new LoopPlaceholder($replacer);
         });
 
@@ -114,7 +116,7 @@ class ReplacerTest extends TestCase
     public function testReplaceWithRepeatingPlaceholders()
     {
         $registry = new Registry();
-        $registry->registerPlaceholderClass( TestPlaceholder::class, function() {;
+        $registry->registerPlaceholderName( 'placeholder', function() {;
             return new TestPlaceholder('placeholder');
         });
         $replacer = new Replacer($registry);
@@ -140,7 +142,7 @@ class ReplacerTest extends TestCase
 
 
         $registry = new Registry();
-        $registry->registerPlaceholderClass( TestPlaceholder::class, function() use ($placeholderMock) {;
+        $registry->registerPlaceholderName( 'placeholder', function() use ($placeholderMock) {;
             return $placeholderMock->reveal();
         });
         $replacer = new Replacer($registry);
@@ -163,7 +165,7 @@ class ReplacerTest extends TestCase
         $mock->method('getValue')->willReturn('');
 
         $registry = new Registry();
-        $registry->registerPlaceholderClass( TestPlaceholder::class, function() use ($mock) {;
+        $registry->registerPlaceholderName( 'placeholder', function() use ($mock) {;
             return $mock;
         });
         $replacer = new Replacer($registry);
@@ -190,7 +192,7 @@ class ReplacerTest extends TestCase
         $instancePlaceholders = [$placeholder];
 
          $registry = new Registry();
-        $registry->registerPlaceholderClass( TestPlaceholder::class, function()  {;
+        $registry->registerPlaceholderName( 'placeholder', function()  {;
             return new TestPlaceholder();
         });
 

@@ -18,10 +18,10 @@ class RegistryTest extends TestCase
     public function testRegisterPlaceholder()
     {
         $registry    = new Registry();
-        $registry->registerPlaceholderClass(TestPlaceholder::class, function() {
+        $registry->registerPlaceholderName('placeholder', function() {
             return new TestPlaceholder('placeholder');
         });
-        $registry->registerPlaceholderClass(LoopPlaceholder::class, function() {
+        $registry->registerPlaceholderName('placeholder_loop', function() {
             return new LoopPlaceholder($this->prophesize(Replacer::class)->reveal());
         });
         $this->assertInstanceOf(TestPlaceholder::class, $registry->getPlaceholderSupportingName('placeholder'), 'It should return an instance of TestPlaceholder' );

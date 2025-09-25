@@ -16,7 +16,7 @@ interface RegistryInterface
      */
     public function registerPlaceholder(PlaceholderInterface $instance);
 
-    public function registerPlaceholderClass(string $placeholderClass, callable $factory);
+    public function registerPlaceholderName(string $placeholderName, callable $factory);
 
      /**
      * It will return first placeholder that supports the $name;

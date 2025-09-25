@@ -11,42 +11,38 @@ class Registry implements RegistryInterface
     /**
      * @var array <string, callable> List of placeholder class names and their factories
      */
-    private $placeholderClasses = [];
+    private $placeholderCallbacks = [];
 
     /**
-     * @deprecated
      * @param PlaceholderInterface $instance
      * @param string $label
      * @param string $placeholderName
      * @param string $groupName
      *
      * @return mixed|void
+     * @deprecated
      */
     public function registerPlaceholder(PlaceholderInterface $instance)
     {
-        $this->registerPlaceholderClass(get_class($instance), function () use ($instance) {
+        $this->registerPlaceholderName($instance->getPlaceholder(), function () use ($instance) {
             return $instance;
         });
     }
 
-    public function registerPlaceholderClass(string $placeholderClass, callable $factory)
+    public function registerPlaceholderName(string $placeholderName, callable $factory)
     {
-        $this->placeholderClasses[$placeholderClass] = $factory;
+        $this->placeholderCallbacks[$placeholderName] = $factory;
     }
 
     /**
      * @return PlaceholderInterface|null
      * @inheritDoc
      */
-    public function getPlaceholderSupportingName($name)
+    public function getPlaceholderSupportingName($aname)
     {
-        foreach ($this->placeholderClasses as $class => $factory) {
-            /**
-             * @var PlaceholderInterface $class
-             */
-            if ($class::support($name)) {
-                return $factory();
-            }
+        if (isset($this->placeholderCallbacks[$aname])) {
+            $factory = $this->placeholderCallbacks[$aname];
+            return $factory($aname);
         }
 
         return null;
