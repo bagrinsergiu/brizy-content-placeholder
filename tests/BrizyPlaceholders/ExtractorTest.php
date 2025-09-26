@@ -122,7 +122,6 @@ class ExtractorTest extends TestCase
         $expectedPlaceholderAttributes
     )
     {
-        self::markTestSkipped('Implement later');
 
         $registry = new Registry();
 
@@ -131,7 +130,9 @@ class ExtractorTest extends TestCase
             $placeholderProphecy->support(Argument::exact($expectedPlaceholderName))->willReturn(true);
             $placeholderProphecy->getValue(Argument::any())->willReturn($expectedPlaceholderName);
             $placeholderProphecy->getUid()->willReturn('1111' . $i);
-            $registry->registerPlaceholder($placeholderProphecy->reveal());
+            $registry->registerPlaceholderName($expectedPlaceholderName, function () use ($placeholderProphecy) {
+                return $placeholderProphecy->reveal();
+            });
         }
 
         $extractor = new Extractor($registry);
