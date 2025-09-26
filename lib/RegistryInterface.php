@@ -26,4 +26,11 @@ interface RegistryInterface
      * @return mixed
      */
     public function getPlaceholderSupportingName($name);
+
+    /**
+     * Return all placeholders
+     *
+     * @return PlaceholderInterface[]
+     */
+    public function getPlaceholders();
 }
