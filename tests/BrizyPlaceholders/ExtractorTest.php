@@ -3,7 +3,6 @@
 namespace BrizyPlaceholdersTests\BrizyPlaceholders;
 
 use BrizyPlaceholders\ContentPlaceholder;
-use BrizyPlaceholders\EmptyContext;
 use BrizyPlaceholders\Extractor;
 use BrizyPlaceholders\ExtractorV2;
 use BrizyPlaceholders\Registry;
@@ -12,9 +11,6 @@ use BrizyPlaceholdersTests\Sample\LoopPlaceholder;
 use BrizyPlaceholdersTests\Sample\Placeholder;
 use BrizyPlaceholdersTests\Sample\PlaceholderWrapper;
 use BrizyPlaceholdersTests\Sample\TestPlaceholder;
-use Phplrt\Compiler\Compiler;
-use Phplrt\Lexer\Lexer;
-use Phplrt\Lexer\Token\Composite;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
 use Prophecy\PhpUnit\ProphecyTrait;
@@ -124,22 +120,26 @@ class ExtractorTest extends TestCase
         $expectedCount,
         $expectedPlaceholderNames,
         $expectedPlaceholderAttributes
-    ) {
+    )
+    {
+
         $registry = new Registry();
 
         foreach ($expectedPlaceholderNames as $i => $expectedPlaceholderName) {
             $placeholderProphecy = $this->prophesize('BrizyPlaceholdersTests\Sample\TestPlaceholder');
             $placeholderProphecy->support(Argument::exact($expectedPlaceholderName))->willReturn(true);
             $placeholderProphecy->getValue(Argument::any())->willReturn($expectedPlaceholderName);
-            $placeholderProphecy->getUid()->willReturn('1111'.$i);
-            $registry->registerPlaceholder($placeholderProphecy->reveal());
+            $placeholderProphecy->getUid()->willReturn('1111' . $i);
+            $registry->registerPlaceholderName($expectedPlaceholderName, function () use ($placeholderProphecy) {
+                return $placeholderProphecy->reveal();
+            });
         }
 
         $extractor = new Extractor($registry);
 
         list($contentPlaceholders, $instancePlaceholders, $returnedContent) = $extractor->extract($content);
 
-        $this->assertCount($expectedCount, $contentPlaceholders, 'It should extract '.$expectedCount.' placeholders');
+        $this->assertCount($expectedCount, $contentPlaceholders, 'It should extract ' . $expectedCount . ' placeholders');
 
         foreach ($contentPlaceholders as $i => $contentPlaceholder) {
             $this->assertStringNotContainsString(
@@ -195,7 +195,9 @@ class ExtractorTest extends TestCase
     public function testExtract()
     {
         $registry = new Registry();
-        $registry->registerPlaceholder(new TestPlaceholder('placeholder'));
+        $registry->registerPlaceholderName('placeholder', function () {
+            return new TestPlaceholder('placeholder');
+        });
         $extractor = new Extractor($registry);
 
         $content = "Some content with a {{placeholder}}.";
@@ -214,9 +216,13 @@ class ExtractorTest extends TestCase
     {
 
         $registry = new Registry();
-        $registry->registerPlaceholder(new TestPlaceholder());
+        $registry->registerPlaceholderName('placeholder', function () {
+            return new TestPlaceholder('placeholder');
+        });
         $replacer = new Replacer($registry);
-        $registry->registerPlaceholder(new LoopPlaceholder($replacer));
+        $registry->registerPlaceholderName('placeholder_loop', function () use ($replacer) {
+            return new LoopPlaceholder($replacer);
+        });
         $extractor = new Extractor($registry);
 
         $content = "Some content with a {{placeholder_loop}}{{placeholder}}{{end_placeholder_loop}}.";
@@ -296,22 +302,31 @@ class ExtractorTest extends TestCase
     public function testExtractPlaceholdersWithAttributes($content, $count)
     {
         $registry = new Registry();
-        $registry->registerPlaceholder(new TestPlaceholder());
+        $factory = function () {
+            return new TestPlaceholder('placeholder');
+        };
+        $registry->registerPlaceholderName('placeholder', $factory);
+        $registry->registerPlaceholderName('placeholder-name', $factory);
+        $registry->registerPlaceholderName('placeholder_with-name', $factory);
         $extractor = new Extractor($registry);
 
         list($contentPlaceholders, $instancePlaceholders, $returnedContent) = $extractor->extract($content);
 
-        $this->assertCount($count, $contentPlaceholders, 'It should return '.$count.' placeholders');
-        $this->assertCount($count, $instancePlaceholders, 'It should return '.$count.' placeholders');
+        $this->assertCount($count, $contentPlaceholders, 'It should return ' . $count . ' placeholders');
+        $this->assertCount($count, $instancePlaceholders, 'It should return ' . $count . ' placeholders');
 
     }
 
     public function testExtractWithRepeatingPlaceholders()
     {
         $registry = new Registry();
-        $registry->registerPlaceholder(new TestPlaceholder('placeholder'));
+        $registry->registerPlaceholderName('placeholder', function () {
+            return new TestPlaceholder('placeholder');
+        });
         $replacer = new Replacer($registry);
-        $registry->registerPlaceholder(new LoopPlaceholder($replacer));
+        $registry->registerPlaceholderName('placeholder_loop', function () use ($replacer) {
+            return new LoopPlaceholder($replacer);
+        });
         $extractor = new Extractor($registry);
 
         $content = "Some content with a {{placeholder}} {{placeholder}} {{placeholder}}.";
@@ -349,7 +364,10 @@ class ExtractorTest extends TestCase
     {
 
         $registry = new Registry();
-        $registry->registerPlaceholder(new TestPlaceholder());
+        $registry->registerPlaceholderName('placeholder', function () {
+            ;
+            return new TestPlaceholder('placeholder');
+        });
         $extractor = new Extractor($registry);
         $content = "{{ placeholder }}content1 {{placeholder_loop}} {{ placeholder }}content inner{{ end_placeholder }} {{end_placeholder_loop}} content2";
 
@@ -423,7 +441,11 @@ class ExtractorTest extends TestCase
                             {{placeholder1}}
                          {{end_placeholder1}}end';
         $registry = new Registry();
-        $registry->registerPlaceholder(new TestPlaceholder());
+        $factory = function () {
+            return new TestPlaceholder('placeholder');
+        };
+        $registry->registerPlaceholderName('placeholder', $factory);
+        $registry->registerPlaceholderName('placeholder1', $factory);
         $extractor = new Extractor($registry);
         list($contentPlaceholders, $placeholderInstances, $content) = $extractor->extract($content);
 
@@ -444,7 +466,10 @@ class ExtractorTest extends TestCase
     {
         $content = 'start{{placeholder_a  attr1="123"  attr2="456"}}content1{{placeholder_a}}1{{placeholder_a attr="123"}}test{{end_placeholder_a}}2{{end_placeholder_a}}content2{{end_placeholder_a}}end';
         $registry = new Registry();
-        $registry->registerPlaceholder(new TestPlaceholder());
+        $registry->registerPlaceholderName('placeholder_a', function () {
+            ;
+            return new TestPlaceholder('placeholder');
+        });
         $extractor = new Extractor($registry);
         list($contentPlaceholders, $placeholderInstances, $content) = $extractor->extract($content);
         $this->assertCount(1, $contentPlaceholders, 'It should return two placeholder');
@@ -465,12 +490,16 @@ class ExtractorTest extends TestCase
     {
         $content = file_get_contents('/opt/project/tests/data/user_case7.html');
         $registry = new Registry();
-        $registry->registerPlaceholder(new TestPlaceholder());
+        $registry->registerPlaceholderName('placeholder', function () {
+            ;
+            return new TestPlaceholder('placeholder');
+        });
         $extractor = new Extractor($registry);
         list($contentPlaceholders, $content) = $extractor->extractIgnoringRegistry($content);
 
         $this->assertCount(14, $contentPlaceholders, 'It should return two placeholder');
     }
+
     public function testExtractFromBigHtml()
     {
         $content = file_get_contents('/opt/project/tests/data/user_case10.html');
@@ -490,6 +519,7 @@ class ExtractorTest extends TestCase
 
         $this->assertCount(411, $contentPlaceholders, 'It should return 43 placeholder');
     }
+
     public function testExtractFromBigHtml3()
     {
         $content = file_get_contents('/opt/project/tests/data/user_case12.html');

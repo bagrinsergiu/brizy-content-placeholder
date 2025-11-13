@@ -71,7 +71,11 @@ class ReplacerTest extends TestCase
     public function testReplaceWithRegisteredPlaceholders()
     {
         $registry = new Registry();
-        $registry->registerPlaceholder(new TestPlaceholder());
+        $factory = function () {
+            return new TestPlaceholder('placeholder');
+        };
+        $registry->registerPlaceholderName( 'placeholder', $factory);
+        $registry->registerPlaceholderName( 'placeholder_234', $factory);
         $replacer = new Replacer($registry);
 
         $content = "Some content with {{placeholder}} and {{placeholder_234}}.";
@@ -88,9 +92,14 @@ class ReplacerTest extends TestCase
     public function testReplaceWithLoopPlaceholder()
     {
         $registry = new Registry();
-        $registry->registerPlaceholder(new TestPlaceholder());
+        $registry->registerPlaceholderName( 'placeholder', function() {;
+            return new TestPlaceholder('placeholder');
+        });
         $replacer = new Replacer($registry);
-        $registry->registerPlaceholder(new LoopPlaceholder($replacer));
+
+         $registry->registerPlaceholderName( 'placeholder_loop', function() use ($replacer) {;
+            return new LoopPlaceholder($replacer);
+        });
 
         $content = "{{placeholder_loop}}{{placeholder}}{{end_placeholder_loop}}";
         $context = new EmptyContext();
@@ -107,7 +116,9 @@ class ReplacerTest extends TestCase
     public function testReplaceWithRepeatingPlaceholders()
     {
         $registry = new Registry();
-        $registry->registerPlaceholder(new TestPlaceholder());
+        $registry->registerPlaceholderName( 'placeholder', function() {;
+            return new TestPlaceholder('placeholder');
+        });
         $replacer = new Replacer($registry);
 
         $content = "Some content {{placeholder}} and {{placeholder}}.";
@@ -124,7 +135,6 @@ class ReplacerTest extends TestCase
     public function testFallback()
     {
         $placeholderMock = $this->prophesize(PlaceholderInterface::class);
-        $placeholderMock->support('placeholder')->willReturn(true);
 
         $placeholderMock->getValue(Argument::type(ContextInterface::class), Argument::type(ContentPlaceholder::class))->willReturn('');
         $placeholderMock->shouldFallbackValue('', Argument::type(ContextInterface::class), Argument::type(ContentPlaceholder::class))->willReturn(true);
@@ -132,7 +142,9 @@ class ReplacerTest extends TestCase
 
 
         $registry = new Registry();
-        $registry->registerPlaceholder($placeholderMock->reveal());
+        $registry->registerPlaceholderName( 'placeholder', function() use ($placeholderMock) {;
+            return $placeholderMock->reveal();
+        });
         $replacer = new Replacer($registry);
 
         $content = "Some {{placeholder}} content";
@@ -153,7 +165,9 @@ class ReplacerTest extends TestCase
         $mock->method('getValue')->willReturn('');
 
         $registry = new Registry();
-        $registry->registerPlaceholder($mock);
+        $registry->registerPlaceholderName( 'placeholder', function() use ($mock) {;
+            return $mock;
+        });
         $replacer = new Replacer($registry);
 
         $content = "Some content {{placeholder _fallback='fallback1'}} and {{placeholder _fallback='fallback2'}}.";
@@ -177,8 +191,10 @@ class ReplacerTest extends TestCase
         $contentPlaceholders = [$contentPlaceholder];
         $instancePlaceholders = [$placeholder];
 
-        $registry = new Registry();
-        $registry->registerPlaceholder(new TestPlaceholder());
+         $registry = new Registry();
+        $registry->registerPlaceholderName( 'placeholder', function()  {;
+            return new TestPlaceholder();
+        });
 
         $replacer = new Replacer($registry);
 
