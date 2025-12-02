@@ -53,7 +53,8 @@ class TestPlaceholder implements PlaceholderInterface
      */
     public function getValue(ContextInterface $context, ContentPlaceholder $placeholder)
     {
-        //usleep(1000*10); //simulate some processing time
+        usleep(1000); //simulate some processing time
+
         $attribute = $placeholder->getAttribute('content');
         if ($attribute) {
             return base64_decode($attribute);

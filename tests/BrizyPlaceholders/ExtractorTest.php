@@ -12,16 +12,10 @@ use BrizyPlaceholdersTests\Sample\LoopPlaceholder;
 use BrizyPlaceholdersTests\Sample\Placeholder;
 use BrizyPlaceholdersTests\Sample\PlaceholderWrapper;
 use BrizyPlaceholdersTests\Sample\TestPlaceholder;
-use Phplrt\Compiler\Compiler;
-use Phplrt\Lexer\Lexer;
-use Phplrt\Lexer\Token\Composite;
 use PHPUnit\Framework\TestCase;
-use Prophecy\Argument;
-use Prophecy\PhpUnit\ProphecyTrait;
 
 class ExtractorTest extends TestCase
 {
-    use ProphecyTrait;
 
     public function extractedPlaceholderContentObjectsProvider()
     {
@@ -128,11 +122,22 @@ class ExtractorTest extends TestCase
         $registry = new Registry();
 
         foreach ($expectedPlaceholderNames as $i => $expectedPlaceholderName) {
-            $placeholderProphecy = $this->prophesize('BrizyPlaceholdersTests\Sample\TestPlaceholder');
-            $placeholderProphecy->support(Argument::exact($expectedPlaceholderName))->willReturn(true);
-            $placeholderProphecy->getValue(Argument::any())->willReturn($expectedPlaceholderName);
-            $placeholderProphecy->getUid()->willReturn('1111'.$i);
-            $registry->registerPlaceholder($placeholderProphecy->reveal());
+            $placeholderMock = $this->createMock(TestPlaceholder::class);
+
+            $placeholderMock->expects($this->any())
+                ->method('support')
+                ->with($expectedPlaceholderName)
+                ->willReturn(true);
+
+            $placeholderMock->expects($this->any())
+                ->method('getValue')
+                ->willReturn($expectedPlaceholderName);
+
+            $placeholderMock->expects($this->any())
+                ->method('getUid')
+                ->willReturn('1111'.$i);
+
+            $registry->registerPlaceholder($placeholderMock);
         }
 
         $extractor = new Extractor($registry);

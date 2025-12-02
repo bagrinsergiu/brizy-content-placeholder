@@ -2,7 +2,7 @@ FROM composer AS strage_composer
 ARG COMPOSER_AUTH
 ENV COMPOSER_AUTH ${COMPOSER_AUTH}
 
-FROM php:8.2-cli as stage_php7
+FROM php:7.4-cli as stage_php7
 COPY --from=strage_composer /usr/bin/composer /usr/bin/composer
 
 RUN apt-get update && apt-get install -y \
@@ -14,9 +14,9 @@ RUN apt-get update && apt-get install -y \
         git wget libzip-dev \
         git librabbitmq-dev
 
-
-RUN pecl install xdebug-3.3.0
-RUN pecl install openswoole-25.2.0
+RUN pecl channel-update pecl.php.net
+RUN pecl install xdebug-3.1.5
+RUN pecl install openswoole-4.9.0
 #RUN docker-php-ext-enable xdebug
 RUN docker-php-ext-enable openswoole
 

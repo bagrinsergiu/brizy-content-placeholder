@@ -8,16 +8,15 @@
   ],
   "type": "library",
   "require": {
-    "php": ">=7.1.0",
+    "php": ">=7.2.0",
     "phplrt/lexer": "^2.3.6",
     "phplrt/compiler": "^2.3.6",
     "psr/log": "^1 || ^2 || ^3",
-    "openswoole/core": "22.1.5"
+    "ext-swoole": "*"
   },
   "require-dev": {
-    "php": ">=8",
-    "phpunit/phpunit": "^9",
-    "phpspec/prophecy-phpunit": "^2"
+    "php": ">=7.4",
+    "phpunit/phpunit": "^8"
   },
   "autoload": {
     "psr-4": {

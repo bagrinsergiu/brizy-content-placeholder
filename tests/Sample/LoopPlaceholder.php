@@ -49,7 +49,8 @@ class LoopPlaceholder implements PlaceholderInterface
         for ($i = 0; $i < 5; $i++) {
             // here you can create a custom context special for this loop an add in it some data
             /// that will be used in the placeholders from $content
-            $returnContent .= $this->replacer->replacePlaceholders($content, new EmptyContext());
+            $context1 = new EmptyContext();
+            $returnContent .= $this->replacer->replacePlaceholders($content, $context1);
         }
 
         return $returnContent;
