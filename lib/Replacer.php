@@ -48,7 +48,7 @@ final class Replacer
      *
      *$subContext @return string|string[]
      */
-    public function replacePlaceholdersAsync($content, ContextInterface $context)
+    public function replacePlaceholders($content, ContextInterface $context)
     {
         $extractor = new Extractor($this->registry);
         list($contentPlaceholders, $instancePlaceholders, $contentAfterExtractor) = $extractor->extract($content);
@@ -60,7 +60,7 @@ final class Replacer
         }
         return $content;
     }
-    public function replacePlaceholders($content, ContextInterface $context)
+    public function replacePlaceholdersAsync($content, ContextInterface $context)
     {
         $extractor = new Extractor($this->registry);
         list($contentPlaceholders, $instancePlaceholders, $contentAfterExtractor) = $extractor->extract($content);
