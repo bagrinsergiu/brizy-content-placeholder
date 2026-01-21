@@ -42,7 +42,8 @@ final class ContentPlaceholder
      */
     public function __construct($name, $placeholder, $attributes = null, $content = null)
     {
-        $this->setUid(md5(microtime() . mt_rand(0, PHP_INT_MAX) . $placeholder));
+        //$this->setUid(md5(microtime() . mt_rand(0, PHP_INT_MAX) . $placeholder));
+        $this->setUid(md5($placeholder.json_encode($attributes)));
         $this->setPlaceholder($placeholder);
         $this->setName($name);
         $this->setAttributes($attributes);

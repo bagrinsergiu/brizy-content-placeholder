@@ -23,19 +23,19 @@ class ExtractorTest extends TestCase
     {
         return [
             ['', 0, [], []],
-            ['{{placeholder}}', 1, ['placeholder'], []],
+            ['{{ aplaceholder}}', 1, ['aplaceholder'], []],
             ['{{place_holder}}', 1, ['place_holder'], []],
             ['{{place_holder attr="1"}}', 1, ['place_holder'], [['attr' => '1']]],
             ['{{place_holder attr="1" attr2="2"}}', 1, ['place_holder'], [['attr' => '1', 'attr2' => '2']]],
             ['{{place_holder   attr="1"   attr2="2"   }}', 1, ['place_holder'], [['attr' => '1', 'attr2' => '2']]],
             ['{{  place_holder   attr="1"   attr2="2"}}', 1, ['place_holder'], [['attr' => '1', 'attr2' => '2']]],
-            ['{{placeholder-part}}', 1, ['placeholder-part'], []],
-            ['{{placeholder_test-test}}', 1, ['placeholder_test-test'], []],
-            ['{{placeholder attr="val1\"val2"}}', 1, ['placeholder'], []],
+            ['{{ placeholder-part}}', 1, ['placeholder-part'], []],
+            ['{{ placeholder_test-test}}', 1, ['placeholder_test-test'], []],
+            ['{{ aplaceholder attr="val1\"val2"}}', 1, ['aplaceholder'], []],
             [
-                "{{placeholder content='e3tla2tfZXZlbnRfY2FsZW5kYXJ9fQ==' category='all' group='all'   howmanymonths='8' detail_page='%7B%7B%20brizy_dc_url_post%20%20id=%22/collection_items/16780%22%20%7D%7D' time='0'}}",
+                "{{ aplaceholder content='e3tla2tfZXZlbnRfY2FsZW5kYXJ9fQ==' category='all' group='all'   howmanymonths='8' detail_page='%7B%7B%20brizy_dc_url_post%20%20id=%22/collection_items/16780%22%20%7D%7D' time='0'}}",
                 1,
-                ['placeholder'],
+                ['aplaceholder'],
                 [
                     [
                         'content' => 'e3tla2tfZXZlbnRfY2FsZW5kYXJ9fQ==',
@@ -50,7 +50,7 @@ class ExtractorTest extends TestCase
                 ],
             ],
             [
-                "{{placeholder
+                "{{ aplaceholder
                             content='e3tla2tfc2VybW9uX2xpc3R9fQ==' 
                             howmany='3' 
                             group='all' 
@@ -74,7 +74,7 @@ class ExtractorTest extends TestCase
                             detail_page_button_text='Button' 
                             sticky_space='0' }}",
                 1,
-                ['placeholder'],
+                ['aplaceholder'],
                 [
                     [
                         'content' => 'e3tla2tfc2VybW9uX2xpc3R9fQ==',
@@ -130,6 +130,7 @@ class ExtractorTest extends TestCase
             $placeholderProphecy->support(Argument::exact($expectedPlaceholderName))->willReturn(true);
             $placeholderProphecy->getValue(Argument::any())->willReturn($expectedPlaceholderName);
             $placeholderProphecy->getUid()->willReturn('1111' . $i);
+            $placeholderProphecy->getPlaceholder()->willReturn("{{{$expectedPlaceholderName}}}");
             $registry->registerPlaceholderName($expectedPlaceholderName, function () use ($placeholderProphecy) {
                 return $placeholderProphecy->reveal();
             });
@@ -183,7 +184,7 @@ class ExtractorTest extends TestCase
         $registry = new Registry();
         $extractor = new Extractor($registry);
 
-        $content = "Some content with a {{placeholder}}.";
+        $content = "Some content with a {{ aplaceholder}}.";
         list($contentPlaceholders, $instancePlaceholders, $returnedContent) = $extractor->extract($content);
 
         $this->assertCount(0, $contentPlaceholders, 'It should return 1 placeholder');
@@ -195,18 +196,18 @@ class ExtractorTest extends TestCase
     public function testExtract()
     {
         $registry = new Registry();
-        $registry->registerPlaceholderName('placeholder', function () {
-            return new TestPlaceholder('placeholder');
+        $registry->registerPlaceholderName('aplaceholder', function () {
+            return new TestPlaceholder('aplaceholder');
         });
         $extractor = new Extractor($registry);
 
-        $content = "Some content with a {{placeholder}}.";
+        $content = "Some content with a {{ aplaceholder}}.";
         list($contentPlaceholders, $instancePlaceholders, $returnedContent) = $extractor->extract($content);
 
         $this->assertCount(1, $contentPlaceholders, 'It should return 1 placeholders');
         $this->assertCount(1, $instancePlaceholders, 'It should return 1 placeholders');
         $this->assertStringNotContainsString(
-            "{{placeholder}}",
+            "{{ aplaceholder}}",
             $returnedContent,
             'It should return the content with the placeholder replaced'
         );
@@ -216,8 +217,8 @@ class ExtractorTest extends TestCase
     {
 
         $registry = new Registry();
-        $registry->registerPlaceholderName('placeholder', function () {
-            return new TestPlaceholder('placeholder');
+        $registry->registerPlaceholderName('aplaceholder', function () {
+            return new TestPlaceholder('aplaceholder');
         });
         $replacer = new Replacer($registry);
         $registry->registerPlaceholderName('placeholder_loop', function () use ($replacer) {
@@ -225,13 +226,13 @@ class ExtractorTest extends TestCase
         });
         $extractor = new Extractor($registry);
 
-        $content = "Some content with a {{placeholder_loop}}{{placeholder}}{{end_placeholder_loop}}.";
+        $content = "Some content with a {{placeholder_loop}}{{aplaceholder}}{{end_placeholder_loop}}.";
         list($contentPlaceholders, $instancePlaceholders, $returnedContent) = $extractor->extract($content);
 
         $this->assertCount(1, $contentPlaceholders, 'It should return 1 placeholders');
         $this->assertCount(1, $instancePlaceholders, 'It should return 1 placeholders');
         $this->assertStringNotContainsString(
-            "{{placeholder}}",
+            "{{aplaceholder}}",
             $returnedContent,
             'It should return the content with the placeholder replaced'
         );
@@ -241,28 +242,28 @@ class ExtractorTest extends TestCase
     public function placeholdersWithAttributesProvider()
     {
         return [
-            ["Some content with a {{placeholder attr='1'}}.", 1],
-            ["Some content with a {{placeholder-name attr='1'}}.", 1],
-            ["Some content with a {{placeholder_with-name attr='1'}}.", 1],
-            ["Some content with a {{placeholder_with-name}}.", 1],
-            ["Some content with a {{placeholder attr=\"1\"}}.", 1],
-            ["Some content {{placeholder attr='1'}}  with a {{placeholder attr='1'}}.", 2],
-            ["Some content {{placeholder attr=\"1\"}}  with a {{placeholder attr=\"1\"}}.", 2],
-            ["<img src=\"{{placeholder attr='1'}} 1x {{placeholder attr='1'}} 2x\"/>", 2],
+            ["Some content with a {{aplaceholder attr='1'}}.", 1],
+            ["Some content with a {{aplaceholder-name attr='1'}}.", 1],
+            ["Some content with a {{aplaceholder_with-name attr='1'}}.", 1],
+            ["Some content with a {{aplaceholder_with-name}}.", 1],
+            ["Some content with a {{aplaceholder attr=\"1\"}}.", 1],
+            ["Some content {{aplaceholder attr='1'}}  with a {{aplaceholder attr='1'}}.", 1],
+            ["Some content {{aplaceholder attr=\"1\"}}  with a {{aplaceholder attr=\"1\"}}.", 1],
+            ["<img src=\"{{aplaceholder attr='1'}} 1x {{aplaceholder attr='1'}} 2x\"/>", 1],
             [
-                '<source srcset="{{placeholder cW=&apos;555&apos; cH=&apos;548&apos;}} 1x, {{placeholder cW=&apos;1110&apos; cH=&apos;1096&apos;}} 2x" media="(min-width: 992px)">',
+                '<source srcset="{{aplaceholder cW=&apos;555&apos; cH=&apos;548&apos;}} 1x, {{aplaceholder cW=&apos;1110&apos; cH=&apos;1096&apos;}} 2x" media="(min-width: 992px)">',
                 2,
             ],
             [
-                '<source srcset="{{placeholder cW=&#x27;555&#x27; cH=&#x27;548&#x27;}} 1x, {{placeholder cW=&#x27;1110&#x27; cH=&#x27;1096&#x27;}} 2x" media="(min-width: 992px)">',
+                '<source srcset="{{aplaceholder cW=&#x27;555&#x27; cH=&#x27;548&#x27;}} 1x, {{aplaceholder cW=&#x27;1110&#x27; cH=&#x27;1096&#x27;}} 2x" media="(min-width: 992px)">',
                 2,
             ],
             [
-                '<source srcset="{{placeholder cW="555" cH=&#x27;548&#x27;}} 1x, {{placeholder cW=&#x27;1110&#x27; cH=&#x27;1096&#x27;}} 2x" media="(min-width: 992px)">',
+                '<source srcset="{{aplaceholder cW="555" cH=&#x27;548&#x27;}} 1x, {{aplaceholder cW=&#x27;1110&#x27; cH=&#x27;1096&#x27;}} 2x" media="(min-width: 992px)">',
                 2,
             ],
             [
-                '{{placeholder type=&#x27;posts&#x27; collection_type=&#x27;/collection_types/5557&#x27; count=&#x27;3&#x27; order_by=&#x27;id&#x27; order=&#x27;DESC&#x27; offset=&#x27;0&#x27;}}
+                '{{aplaceholder type=&#x27;posts&#x27; collection_type=&#x27;/collection_types/5557&#x27; count=&#x27;3&#x27; order_by=&#x27;id&#x27; order=&#x27;DESC&#x27; offset=&#x27;0&#x27;}}
 <div class="brz-posts__item">
     <source srcset="{{brizy_dc_img_featured_image cW=&#x27;350&#x27; cH=&#x27;263&#x27;}} 1x,
             {{brizy_dc_img_featured_image cW=&#x27;700&#x27; cH=&#x27;526&#x27;}} 2x\
@@ -290,7 +291,7 @@ class ExtractorTest extends TestCase
           l7.707-7.707C23.098,12.316,23.098,11.684,22.707,11.293z\
     "/>
 </g></svg><span class="brz-span
-                brz-text__editor">READ MORE</span></a></div></div></div></div></div></div>{{end_placeholder}}',
+                brz-text__editor">READ MORE</span></a></div></div></div></div></div></div>{{end_aplaceholder}}',
                 1,
             ],
         ];
@@ -303,11 +304,11 @@ class ExtractorTest extends TestCase
     {
         $registry = new Registry();
         $factory = function () {
-            return new TestPlaceholder('placeholder');
+            return new TestPlaceholder('aplaceholder');
         };
-        $registry->registerPlaceholderName('placeholder', $factory);
-        $registry->registerPlaceholderName('placeholder-name', $factory);
-        $registry->registerPlaceholderName('placeholder_with-name', $factory);
+        $registry->registerPlaceholderName('aplaceholder', $factory);
+        $registry->registerPlaceholderName('aplaceholder-name', $factory);
+        $registry->registerPlaceholderName('aplaceholder_with-name', $factory);
         $extractor = new Extractor($registry);
 
         list($contentPlaceholders, $instancePlaceholders, $returnedContent) = $extractor->extract($content);
@@ -320,8 +321,8 @@ class ExtractorTest extends TestCase
     public function testExtractWithRepeatingPlaceholders()
     {
         $registry = new Registry();
-        $registry->registerPlaceholderName('placeholder', function () {
-            return new TestPlaceholder('placeholder');
+        $registry->registerPlaceholderName('aplaceholder', function () {
+            return new TestPlaceholder('aplaceholder');
         });
         $replacer = new Replacer($registry);
         $registry->registerPlaceholderName('placeholder_loop', function () use ($replacer) {
@@ -329,13 +330,13 @@ class ExtractorTest extends TestCase
         });
         $extractor = new Extractor($registry);
 
-        $content = "Some content with a {{placeholder}} {{placeholder}} {{placeholder}}.";
+        $content = "Some content with a {{aplaceholder}} {{aplaceholder}} {{aplaceholder}}.";
         list($contentPlaceholders, $instancePlaceholders, $returnedContent) = $extractor->extract($content);
 
-        $this->assertCount(3, $contentPlaceholders, 'It should return 3 placeholders');
-        $this->assertCount(3, $instancePlaceholders, 'It should return 3 placeholders');
+        $this->assertCount(1, $contentPlaceholders, 'It should return 1 placeholders');
+        $this->assertCount(1, $instancePlaceholders, 'It should return 1 placeholders');
         $this->assertStringNotContainsString(
-            "{{placeholder}}",
+            "{{aplaceholder}}",
             $returnedContent,
             'It should return the content with the placeholder replaced'
         );
@@ -346,10 +347,10 @@ class ExtractorTest extends TestCase
         $registry = new Registry();
         $extractor = new Extractor($registry);
 
-        $content = "Some content with a {{placeholder}}.";
+        $content = "Some content with a {{aplaceholder}}.";
         $strippedContent = $extractor->stripPlaceholders($content);
         $this->assertStringNotContainsString(
-            '{{placeholder}}',
+            '{{aplaceholder}}',
             $strippedContent,
             'It should not contain any placeholders'
         );
@@ -364,12 +365,11 @@ class ExtractorTest extends TestCase
     {
 
         $registry = new Registry();
-        $registry->registerPlaceholderName('placeholder', function () {
-            ;
-            return new TestPlaceholder('placeholder');
+        $registry->registerPlaceholderName('aplaceholder', function () {
+            return new TestPlaceholder('aplaceholder');
         });
         $extractor = new Extractor($registry);
-        $content = "{{ placeholder }}content1 {{placeholder_loop}} {{ placeholder }}content inner{{ end_placeholder }} {{end_placeholder_loop}} content2";
+        $content = "{{ aplaceholder }}content1 {{placeholder_loop}} {{ aplaceholder }}content inner{{ end_placeholder }} {{end_placeholder_loop}} content2";
 
         list($contentPlaceholders, $instancePlaceholders, $returnedContent) = $extractor->extract($content);
 
@@ -408,7 +408,7 @@ class ExtractorTest extends TestCase
             }
         );
 
-        $this->assertCount(2, $contentPlaceholders, 'It should return one placeholder');
+        $this->assertCount(2, $contentPlaceholders, 'It should return two placeholder');
         $this->assertEquals(
             "content placeholder1 placeholder_loop content2",
             $returnedContent,
@@ -424,7 +424,7 @@ class ExtractorTest extends TestCase
 
         list($contentPlaceholders, $returnedContent) = $extractor->extractIgnoringRegistry($content);
 
-        $this->assertCount(2, $contentPlaceholders, 'It should return two placeholder');
+        $this->assertCount(1, $contentPlaceholders, 'It should return two placeholder');
         foreach ($contentPlaceholders as $placeholder) {
             $this->assertEquals(
                 'content1{{placeholder_a}}1{{placeholder_a attr="123"}}test{{end_placeholder_a}}2{{end_placeholder_a}}content2',
@@ -442,9 +442,9 @@ class ExtractorTest extends TestCase
                          {{end_placeholder1}}end';
         $registry = new Registry();
         $factory = function () {
-            return new TestPlaceholder('placeholder');
+            return new TestPlaceholder('aplaceholder');
         };
-        $registry->registerPlaceholderName('placeholder', $factory);
+        $registry->registerPlaceholderName('aplaceholder', $factory);
         $registry->registerPlaceholderName('placeholder1', $factory);
         $extractor = new Extractor($registry);
         list($contentPlaceholders, $placeholderInstances, $content) = $extractor->extract($content);
@@ -507,7 +507,7 @@ class ExtractorTest extends TestCase
         $extractor = new Extractor($registry);
         list($contentPlaceholders, $content) = $extractor->extractIgnoringRegistry($content);
 
-        $this->assertCount(43, $contentPlaceholders, 'It should return 43 placeholder');
+        $this->assertCount(19, $contentPlaceholders, 'It should return 43 placeholder');
     }
 
     public function testExtractFromBigHtml2()
@@ -517,7 +517,7 @@ class ExtractorTest extends TestCase
         $extractor = new Extractor($registry);
         list($contentPlaceholders, $content) = $extractor->extractIgnoringRegistry($content);
 
-        $this->assertCount(411, $contentPlaceholders, 'It should return 43 placeholder');
+        $this->assertCount(144, $contentPlaceholders, 'It should return 43 placeholder');
     }
 
     public function testExtractFromBigHtml3()
@@ -527,7 +527,8 @@ class ExtractorTest extends TestCase
         $extractor = new Extractor($registry);
         list($contentPlaceholders, $content) = $extractor->extractIgnoringRegistry($content);
 
-        $this->assertCount(50, $contentPlaceholders, 'It should return 50 placeholder');
+        $this->assertCount(13, $contentPlaceholders, 'It should return 50 placeholder');
     }
+
 
 }

@@ -5,6 +5,7 @@ namespace BrizyPlaceholdersTests\BrizyPlaceholders;
 use BrizyPlaceholders\ContentPlaceholder;
 use BrizyPlaceholders\ContextInterface;
 use BrizyPlaceholders\EmptyContext;
+use BrizyPlaceholders\Extractor;
 use BrizyPlaceholders\PlaceholderInterface;
 use BrizyPlaceholders\Registry;
 use BrizyPlaceholders\Replacer;
@@ -34,14 +35,14 @@ class ReplacerTest extends TestCase
         );
     }
 
-   public function testAfterExtractCall()
+    public function testAfterExtractCall()
     {
         $registry = new Registry();
         $replacer = new Replacer($registry);
 
         $content = "Some content";
         $context = $this->prophesize(ContextInterface::class);
-        $context->afterExtract([],[],$content)->shouldBeCalled();
+        $context->afterExtract([], [], $content)->shouldBeCalled();
         $contentAfterReplace = $replacer->replacePlaceholders($content, $context->reveal());
 
         $this->assertEquals(
@@ -72,13 +73,13 @@ class ReplacerTest extends TestCase
     {
         $registry = new Registry();
         $factory = function () {
-            return new TestPlaceholder('placeholder');
+            return new TestPlaceholder('aplaceholder');
         };
-        $registry->registerPlaceholderName( 'placeholder', $factory);
-        $registry->registerPlaceholderName( 'placeholder_234', $factory);
+        $registry->registerPlaceholderName( 'aplaceholder', $factory);
+        $registry->registerPlaceholderName( 'aplaceholder_234', $factory);
         $replacer = new Replacer($registry);
 
-        $content = "Some content with {{placeholder}} and {{placeholder_234}}.";
+        $content = "Some content with {{aplaceholder}} and {{aplaceholder_234}}.";
         $context = new EmptyContext();
         $contentAfterReplace = $replacer->replacePlaceholders($content, $context);
 
@@ -92,16 +93,16 @@ class ReplacerTest extends TestCase
     public function testReplaceWithLoopPlaceholder()
     {
         $registry = new Registry();
-        $registry->registerPlaceholderName( 'placeholder', function() {;
-            return new TestPlaceholder('placeholder');
+        $registry->registerPlaceholderName('aplaceholder', function () {
+            return new TestPlaceholder('aplaceholder');
         });
         $replacer = new Replacer($registry);
 
-         $registry->registerPlaceholderName( 'placeholder_loop', function() use ($replacer) {;
+        $registry->registerPlaceholderName('placeholder_loop', function () use ($replacer) {
             return new LoopPlaceholder($replacer);
         });
 
-        $content = "{{placeholder_loop}}{{placeholder}}{{end_placeholder_loop}}";
+        $content = "{{placeholder_loop}}{{aplaceholder}}{{end_placeholder_loop}}";
         $context = new EmptyContext();
         $contentAfterReplace = $replacer->replacePlaceholders($content, $context);
 
@@ -116,12 +117,13 @@ class ReplacerTest extends TestCase
     public function testReplaceWithRepeatingPlaceholders()
     {
         $registry = new Registry();
-        $registry->registerPlaceholderName( 'placeholder', function() {;
-            return new TestPlaceholder('placeholder');
+        $registry->registerPlaceholderName('aplaceholder', function () {
+            ;
+            return new TestPlaceholder('aplaceholder');
         });
         $replacer = new Replacer($registry);
 
-        $content = "Some content {{placeholder}} and {{placeholder}}.";
+        $content = "Some content {{aplaceholder}} and {{aplaceholder}}.";
         $context = new EmptyContext();
         $contentAfterReplace = $replacer->replacePlaceholders($content, $context);
 
@@ -142,12 +144,13 @@ class ReplacerTest extends TestCase
 
 
         $registry = new Registry();
-        $registry->registerPlaceholderName( 'placeholder', function() use ($placeholderMock) {;
+        $registry->registerPlaceholderName('aplaceholder', function () use ($placeholderMock) {
+            ;
             return $placeholderMock->reveal();
         });
         $replacer = new Replacer($registry);
 
-        $content = "Some {{placeholder}} content";
+        $content = "Some {{aplaceholder}} content";
         $context = new EmptyContext();
         $contentAfterReplace = $replacer->replacePlaceholders($content, $context);
 
@@ -160,17 +163,18 @@ class ReplacerTest extends TestCase
 
     public function testFallbackAttribute()
     {
-        $mock = $this->createPartialMock(TestPlaceholder::class, ['getValue','support']);
+        $mock = $this->createPartialMock(TestPlaceholder::class, ['getValue', 'support']);
         $mock->method('support')->willReturn(true);
         $mock->method('getValue')->willReturn('');
 
         $registry = new Registry();
-        $registry->registerPlaceholderName( 'placeholder', function() use ($mock) {;
+        $registry->registerPlaceholderName('aplaceholder', function () use ($mock) {
+            ;
             return $mock;
         });
         $replacer = new Replacer($registry);
 
-        $content = "Some content {{placeholder _fallback='fallback1'}} and {{placeholder _fallback='fallback2'}}.";
+        $content = "Some content {{aplaceholder _fallback='fallback1'}} and {{aplaceholder _fallback='fallback2'}}.";
         $context = new EmptyContext();
         $contentAfterReplace = $replacer->replacePlaceholders($content, $context);
 
@@ -191,8 +195,9 @@ class ReplacerTest extends TestCase
         $contentPlaceholders = [$contentPlaceholder];
         $instancePlaceholders = [$placeholder];
 
-         $registry = new Registry();
-        $registry->registerPlaceholderName( 'placeholder', function()  {;
+        $registry = new Registry();
+        $registry->registerPlaceholderName('placeholder', function () {
+            ;
             return new TestPlaceholder();
         });
 
@@ -205,4 +210,35 @@ class ReplacerTest extends TestCase
         $this->assertEquals("Some content placeholder_value and placeholder_value.", $contentAfterReplace, 'It should replace all placeholders');
     }
 
+
+    public function testExtractFromBigHtml4()
+    {
+        $content = file_get_contents('/opt/project/tests/data/user_case15.html');
+        $registry = new Registry();
+        $extractor = new Extractor($registry);
+
+        $t = microtime(true);
+        list($contentPlaceholders, $content) = $extractor->extractIgnoringRegistry($content);
+
+
+        $stats = [];
+        foreach ($contentPlaceholders as $i => $contentPlaceholder) {
+            if (!isset($stats[$contentPlaceholder->getPlaceholder()])) $stats[$contentPlaceholder->getPlaceholder()] = 0;
+            $stats[$contentPlaceholder->getPlaceholder()]++;
+        }
+
+        $toReplaceWithValues = [];
+        $toReplace = [];
+        foreach ($contentPlaceholders as $i => $contentPlaceholder) {
+            $toReplace[] = $contentPlaceholder->getUid();
+            $toReplaceWithValues[] = md5($contentPlaceholder->getUid());
+            usleep(10000);
+        }
+
+        $content = str_replace($toReplace, $toReplaceWithValues, $content);
+
+
+        echo "Extract time: " . (microtime(true) - $t) . "s\n";
+        $this->assertCount(50, $contentPlaceholders, 'It should return 50 placeholder');
+    }
 }

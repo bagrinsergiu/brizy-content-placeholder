@@ -31,7 +31,7 @@ final class Extractor implements ExtractorInterface
      * @param RegistryInterface $registry
      * @param null $logger
      */
-    public function __construct($registry, $logger=null)
+    public function __construct($registry, $logger = null)
     {
         @ini_set('pcre.backtrack_limit', 9000000);
         $this->registry = $registry;
@@ -79,24 +79,31 @@ final class Extractor implements ExtractorInterface
             if (!$instance) {
                 continue;
             }
-            $placeholderInstances[$i] = $instance;
-            $contentPlaceholders[$i] = new ContentPlaceholder(
+
+            $tmpPlaceholder = new ContentPlaceholder(
                 $placeholder['name'],
                 $placeholder['original'],
                 $placeholder['attributes'] ? $this->getPlaceholderAttributes($placeholder['attributes']) : [],
                 $placeholder['content'] ?? ''
             );
+            $pHash = $tmpPlaceholder->getUid();
 
-            $pos = strpos($content, $contentPlaceholders[$i]->getPlaceholder());
+            $placeholderInstances[$pHash] = $instance;
+            $contentPlaceholders[$pHash] = $tmpPlaceholder;
 
-            $length = strlen($contentPlaceholders[$i]->getPlaceholder());
+            $pos = strpos($content, $contentPlaceholders[$pHash]->getPlaceholder());
+
+            $length = strlen($contentPlaceholders[$pHash]->getPlaceholder());
 
             if ($pos !== false) {
-                $content = substr_replace($content, $contentPlaceholders[$i]->getUid(), $pos, $length);
+                $content = substr_replace($content, $pHash, $pos, $length);
             }
         }
 
-        return array($contentPlaceholders, $placeholderInstances, $content);
+        // transform placeholder wrappers to real placeholders
+        list($_contentPlaceholders,$_placeholderInstances) = $this->transformPlaceholderWrappersToRealRegisteredPlaceholders($contentPlaceholders,$placeholderInstances);
+
+        return array($_contentPlaceholders, $_placeholderInstances, $content);
     }
 
     public function extractIgnoringRegistry($content, $callback = null)
@@ -122,23 +129,30 @@ final class Extractor implements ExtractorInterface
         }
         $contentPlaceholders = [];
         foreach ($placeholders as $i => $placeholder) {
-            $contentPlaceholders[$i] = new ContentPlaceholder(
+            $tP = new ContentPlaceholder(
                 $placeholder['name'],
                 $placeholder['original'],
                 $placeholder['attributes'] ? $this->getPlaceholderAttributes($placeholder['attributes']) : [],
                 $placeholder['content'] ?? ""
             );
 
-            $pos = strpos($content, $contentPlaceholders[$i]->getPlaceholder());
+            $pHash = $tP->getUid();
+            $contentPlaceholders[$pHash] = $tP;
 
-            $length = strlen($contentPlaceholders[$i]->getPlaceholder());
+            $pos = strpos($content, $contentPlaceholders[$pHash]->getPlaceholder());
+
+            $length = strlen($contentPlaceholders[$pHash]->getPlaceholder());
 
             if ($pos !== false) {
-                $content = substr_replace($content, $callback($contentPlaceholders[$i]), $pos, $length);
+                $replace = $callback($tP);
+                $content = substr_replace($content, $replace, $pos, $length);
             }
         }
 
-        return array($contentPlaceholders, $content);
+        // transform placeholder wrappers to real placeholders
+        $_contentPlaceholders = $this->transformPlaceholderWrappersToRealPlaceholders($contentPlaceholders);
+
+        return array($_contentPlaceholders, $content);
     }
 
     private function extractPlaceholder(array $tokens, $start = 0, $content = '')
@@ -174,7 +188,7 @@ final class Extractor implements ExtractorInterface
                     $pName = $this->getPlaceholderTokenValue($token);
                     if ($pName == "end_{$placeholder['name']}") {
                         $placeholder['content'] = $placeholderContent;
-                        $placeholder['original'] .= $placeholderContent.$token->getValue();
+                        $placeholder['original'] .= $placeholderContent . $token->getValue();
 
                         return [$placeholder, $i];
                     } else {
@@ -190,6 +204,72 @@ final class Extractor implements ExtractorInterface
         }
 
         return [$placeholder, $continueIndex];
+    }
+
+    /**
+     * @param array $contentPlaceholders
+     * @param $callback
+     * @return array
+     */
+    protected function transformPlaceholderWrappersToRealPlaceholders(array $contentPlaceholders): array
+    {
+        $_contentPlaceholders = array();
+        foreach ($contentPlaceholders as $i => $placeholder) {
+            if ($placeholder->getName() == 'placeholder') {
+                $attribute = $placeholder->getAttribute('content');
+                if (!$attribute) continue;
+                $base64_decode = base64_decode($attribute);
+                list($ps, $hash) = $this->extractIgnoringRegistry($base64_decode);
+                $ps = array_pop($ps);
+                if (isset($ps)) {
+                    $attrAray = $placeholder->getAttributes();
+                    unset($attrAray['content']);
+                    $ps->setAttributes(array_merge($ps->getAttributes(), $attrAray));
+                    $ps->setPlaceholder($ps->buildPlaceholder(true));
+                    $_contentPlaceholders[] = $ps;
+                } else {
+                    $t = 0;
+                }
+            } else {
+                $_contentPlaceholders[] = $placeholder;
+            }
+        }
+        return $_contentPlaceholders;
+    }
+
+    /**
+     * @param array $contentPlaceholders
+     * @param $callback
+     * @return array
+     */
+    protected function transformPlaceholderWrappersToRealRegisteredPlaceholders(array $contentPlaceholders, array $placeholderInstances): array
+    {
+        $_contentPlaceholders = [];
+        $_placeholderInstances = [];
+        foreach ($contentPlaceholders as $i => $placeholder) {
+            if ($placeholder->getName() == 'placeholder') {
+                $attribute = $placeholder->getAttribute('content');
+                if (!$attribute) continue;
+                $base64_decode = base64_decode($attribute);
+                list($ps, $psi, $content) = $this->extract($base64_decode);
+                $ps = array_pop($ps);
+                $psi = array_pop($psi);
+                if (isset($ps)) {
+                    $attrAray = $placeholder->getAttributes();
+                    unset($attrAray['content']);
+                    $ps->setAttributes(array_merge($ps->getAttributes(), $attrAray));
+                    $ps->setPlaceholder($ps->buildPlaceholder(true));
+                    $_contentPlaceholders[] = $ps;
+                    $_placeholderInstances[] = $psi;
+                } else {
+                    $t = 0;
+                }
+            } else {
+                $_contentPlaceholders[] = $placeholder;
+                $_placeholderInstances[] = $placeholderInstances[$i];
+            }
+        }
+        return [$_contentPlaceholders, $_placeholderInstances];
     }
 
     private function searchForPlaceholder($tokens, $placeholderName, $start = 0)
