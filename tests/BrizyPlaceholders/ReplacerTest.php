@@ -220,6 +220,7 @@ class ReplacerTest extends TestCase
 
         $t = microtime(true);
         list($contentPlaceholders, $content) = $extractor->extractIgnoringRegistry($content);
+        echo "Content placeholder count: " . count($contentPlaceholders) . "\n";
         echo "Extract time: " . (microtime(true) - $t) . "s\n";
 
         $t = microtime(true);
@@ -227,15 +228,17 @@ class ReplacerTest extends TestCase
         $toReplaceWithValues = [];
         $toReplace = [];
         foreach ($contentPlaceholders as $i => $contentPlaceholder) {
-            $toReplace[] = $contentPlaceholder->getUid();
-            $toReplaceWithValues[] = md5($contentPlaceholder->getUid());
-            usleep(1000);
+            $toReplaceWithValues[$contentPlaceholder->getUid()] = md5($contentPlaceholder->getUid());
+            //usleep(10000);
         }
 
-        $content = str_replace($toReplace, $toReplaceWithValues, $content);
-
+        $content = strtr($content, $toReplaceWithValues);
 
         echo "Replace time: " . (microtime(true) - $t) . "s\n";
         $this->assertCount(715, $contentPlaceholders, 'It should return 50 placeholder');
+        foreach( $toReplaceWithValues as $uid => $value ) {
+            $this->assertStringNotContainsString($uid, $content, 'It should return the content with replaced placeholders');
+        }
+
     }
 }

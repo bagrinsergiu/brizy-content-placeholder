@@ -18,10 +18,16 @@ class Replacer
      * @var RegistryInterface
      */
     private $registry;
+
     /**
      * @var LoggerInterface|null
      */
     private $logger;
+
+    /**
+     * @var Extractor|null
+     */
+    private $extractor;
 
     /**
      * Brizy_Content_PlaceholderReplacer constructor.
@@ -35,6 +41,17 @@ class Replacer
     }
 
     /**
+     * Get or create the Extractor instance (cached for reuse).
+     */
+    private function getExtractor(): Extractor
+    {
+        if ($this->extractor === null) {
+            $this->extractor = new Extractor($this->registry, $this->logger);
+        }
+        return $this->extractor;
+    }
+
+    /**
      * @param $content
      * @param ContextInterface $context
      *
@@ -42,7 +59,7 @@ class Replacer
      */
     public function replacePlaceholders($content, ContextInterface $context)
     {
-        $extractor = new Extractor($this->registry);
+        $extractor = $this->getExtractor();
         list($contentPlaceholders, $instancePlaceholders, $contentAfterExtractor) = $extractor->extract($content);
 
         $context->afterExtract($contentPlaceholders, $instancePlaceholders, $contentAfterExtractor);
@@ -60,39 +77,42 @@ class Replacer
      */
     public function replaceWithExtractedData(array $contentPlaceholders, array $instancePlaceholders, $contentAfterExtractor, ContextInterface $context)
     {
-        $toReplace = array();
-        $toReplaceWithValues = array();
+        $replacements = [];  // uid => value associative array for strtr
+
         foreach ($contentPlaceholders as $index => $contentPlaceholder) {
             try {
-                $toReplace[] = $contentPlaceholder->getUid();
-                /**
-                 * @var PlaceholderInterface $instancePlaceholder ;
-                 */
-                $instancePlaceholder = $instancePlaceholders[$index];
+                $instancePlaceholder = $instancePlaceholders[$index] ?? null;
+
+                // Compute value first, only add to map on success
                 if ($instancePlaceholder) {
                     $value = $instancePlaceholder->getValue($context, $contentPlaceholder);
 
                     if ($instancePlaceholder->shouldFallbackValue($value, $context, $contentPlaceholder)) {
-                        $toReplaceWithValues[] = $instancePlaceholder->getFallbackValue($context, $contentPlaceholder);
+                        $replacementValue = $instancePlaceholder->getFallbackValue($context, $contentPlaceholder);
                     } else {
-                        $toReplaceWithValues[] = $value;
+                        $replacementValue = $value;
                     }
                 } else {
-                    $toReplaceWithValues[] = '';
+                    $replacementValue = '';
                 }
+
+                $replacements[$contentPlaceholder->getUid()] = $replacementValue;
 
             } catch (\Exception $e) {
                 if ($this->logger) {
-                    $this->logger->error($e->getMessage(),['placeholder' => $contentPlaceholder->getName(),'attributes' => $contentPlaceholder->getAttributes()]);
+                    $this->logger->error($e->getMessage(), [
+                        'placeholder' => $contentPlaceholder->getName(),
+                        'attributes' => $contentPlaceholder->getAttributes()
+                    ]);
                 }
-                array_pop($toReplace);
-                continue;
+                // Skip this placeholder entirely on error
             }
         }
 
-        $content = str_replace($toReplace, $toReplaceWithValues, $contentAfterExtractor);
-
-        return $content;
+        // strtr with associative array is faster than str_replace:
+        // - Single pass through content (vs multiple passes)
+        // - Simultaneous matching (no cascading replacements)
+        return strtr($contentAfterExtractor, $replacements);
     }
 
 }

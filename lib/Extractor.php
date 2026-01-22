@@ -61,10 +61,9 @@ final class Extractor implements ExtractorInterface
 
         $contentPlaceholders = [];
         $placeholderInstances = [];
-        $searchArray = [];      // Collect all search strings for batched replacement
-        $replaceArray = [];     // Collect all replacement UIDs for batched replacement
+        $replacements = [];  // placeholder string => UID for strtr
 
-        foreach ($placeholders as $i => $placeholder) {
+        foreach ($placeholders as $placeholder) {
             $tmpPlaceholder = new ContentPlaceholder(
                 $placeholder['name'],
                 $placeholder['original'],
@@ -81,15 +80,12 @@ final class Extractor implements ExtractorInterface
 
             $placeholderInstances[$pHash] = $instance;
             $contentPlaceholders[$pHash] = $tmpPlaceholder;
-
-            // Build arrays for batched replacement (O(n) instead of O(n×m))
-            $searchArray[] = $tmpPlaceholder->getPlaceholder();
-            $replaceArray[] = $pHash;
+            $replacements[$tmpPlaceholder->getPlaceholder()] = $pHash;
         }
 
-        // Single str_replace call - significantly faster than loop with strpos + substr_replace
-        if (!empty($searchArray)) {
-            $content = str_replace($searchArray, $replaceArray, $content);
+        // strtr: single pass, simultaneous matching (faster than str_replace for multiple replacements)
+        if (!empty($replacements)) {
+            $content = strtr($content, $replacements);
         }
 
         // transform placeholder wrappers to real placeholders
@@ -110,10 +106,9 @@ final class Extractor implements ExtractorInterface
         $placeholders = $this->extractPlaceholdersFromTokens($tokens);
 
         $contentPlaceholders = [];
-        $searchArray = [];      // Collect all search strings for batched replacement
-        $replaceArray = [];     // Collect all replacement strings for batched replacement
+        $replacements = [];  // placeholder string => replacement value for strtr
 
-        foreach ($placeholders as $i => $placeholder) {
+        foreach ($placeholders as $placeholder) {
             $tP = new ContentPlaceholder(
                 $placeholder['name'],
                 $placeholder['original'],
@@ -123,15 +118,12 @@ final class Extractor implements ExtractorInterface
 
             $pHash = $tP->getUid();
             $contentPlaceholders[$pHash] = $tP;
-
-            // Build arrays for batched replacement (O(n) instead of O(n×m))
-            $searchArray[] = $tP->getPlaceholder();
-            $replaceArray[] = $callback($tP);
+            $replacements[$tP->getPlaceholder()] = $callback($tP);
         }
 
-        // Single str_replace call - significantly faster than loop with strpos + substr_replace
-        if (!empty($searchArray)) {
-            $content = str_replace($searchArray, $replaceArray, $content);
+        // strtr: single pass, simultaneous matching (faster than str_replace for multiple replacements)
+        if (!empty($replacements)) {
+            $content = strtr($content, $replacements);
         }
 
         // transform placeholder wrappers to real placeholders
