@@ -75,8 +75,8 @@ class ReplacerTest extends TestCase
         $factory = function () {
             return new TestPlaceholder('aplaceholder');
         };
-        $registry->registerPlaceholderName( 'aplaceholder', $factory);
-        $registry->registerPlaceholderName( 'aplaceholder_234', $factory);
+        $registry->registerPlaceholderName('aplaceholder', $factory);
+        $registry->registerPlaceholderName('aplaceholder_234', $factory);
         $replacer = new Replacer($registry);
 
         $content = "Some content with {{aplaceholder}} and {{aplaceholder_234}}.";
@@ -211,37 +211,6 @@ class ReplacerTest extends TestCase
         $this->assertEquals("Some content placeholder_value and placeholder_value.", $contentAfterReplace, 'It should replace all placeholders');
     }
 
-
-    public function testExtractFromBigHtml4()
-    {
-
-        $content = file_get_contents('/opt/project/tests/data/user_case15.html');
-        $registry = new Registry();
-        $extractor = new Extractor($registry);
-
-        $t = microtime(true);
-        list($contentPlaceholders, $content) = $extractor->extractIgnoringRegistry($content);
-        //echo "Content placeholder count: " . count($contentPlaceholders) . "\n";
-        //echo "Extract time: " . (microtime(true) - $t) . "s\n";
-
-        $t = microtime(true);
-
-        $toReplaceWithValues = [];
-        $toReplace = [];
-        foreach ($contentPlaceholders as $i => $contentPlaceholder) {
-            $toReplaceWithValues[$contentPlaceholder->getUid()] = md5($contentPlaceholder->getUid());
-            //usleep(10000);
-        }
-
-        $content = strtr($content, $toReplaceWithValues);
-
-        //echo "Replace time: " . (microtime(true) - $t) . "s\n";
-        $this->assertCount(715, $contentPlaceholders, 'It should return 50 placeholder');
-        foreach( $toReplaceWithValues as $uid => $value ) {
-            $this->assertStringNotContainsString($uid, $content, 'It should return the content with replaced placeholders');
-        }
-
-    }
 
     /**
      * Test that exception in getValue is caught and logged.
@@ -512,17 +481,19 @@ class ReplacerTest extends TestCase
             'Special characters should be preserved'
         );
     }
-    public function testExtractFromBigHtml5()
+
+
+    public function testExtractFromBigHtml4()
     {
 
-        $content = file_get_contents('/opt/project/tests/data/user_case16.html');
+        $content = file_get_contents('/opt/project/tests/data/user_case15.html');
         $registry = new Registry();
         $extractor = new Extractor($registry);
 
         $t = microtime(true);
         list($contentPlaceholders, $content) = $extractor->extractIgnoringRegistry($content);
-        echo "Content placeholder count: " . count($contentPlaceholders) . "\n";
-        echo "Extract time: " . (microtime(true) - $t) . "s\n";
+        //echo "Content placeholder count: " . count($contentPlaceholders) . "\n";
+        //echo "Extract time: " . (microtime(true) - $t) . "s\n";
 
         $t = microtime(true);
 
@@ -535,9 +506,9 @@ class ReplacerTest extends TestCase
 
         $content = strtr($content, $toReplaceWithValues);
 
-        echo "Replace time: " . (microtime(true) - $t) . "s\n";
+        //echo "Replace time: " . (microtime(true) - $t) . "s\n";
         $this->assertCount(715, $contentPlaceholders, 'It should return 50 placeholder');
-        foreach( $toReplaceWithValues as $uid => $value ) {
+        foreach ($toReplaceWithValues as $uid => $value) {
             $this->assertStringNotContainsString($uid, $content, 'It should return the content with replaced placeholders');
         }
 
