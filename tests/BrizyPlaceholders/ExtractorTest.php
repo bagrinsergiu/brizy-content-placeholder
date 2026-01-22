@@ -32,6 +32,12 @@ class ExtractorTest extends TestCase
             ['{{ placeholder-part}}', 1, ['placeholder-part'], []],
             ['{{ placeholder_test-test}}', 1, ['placeholder_test-test'], []],
             ['{{ aplaceholder attr="val1\"val2"}}', 1, ['aplaceholder'], []],
+            // Edge case: Empty attribute value
+            ['{{place_holder attr=""}}', 1, ['place_holder'], [['attr' => '']]],
+            // Edge case: Whitespace attribute value
+            ['{{place_holder attr="   "}}', 1, ['place_holder'], [['attr' => '   ']]],
+            // Edge case: Placeholder at exact boundaries (no surrounding text)
+            ['{{place_holder}}', 1, ['place_holder'], []],
             [
                 "{{ aplaceholder content='e3tla2tfZXZlbnRfY2FsZW5kYXJ9fQ==' category='all' group='all'   howmanymonths='8' detail_page='%7B%7B%20brizy_dc_url_post%20%20id=%22/collection_items/16780%22%20%7D%7D' time='0'}}",
                 1,
@@ -528,6 +534,199 @@ class ExtractorTest extends TestCase
         list($contentPlaceholders, $content) = $extractor->extractIgnoringRegistry($content);
 
         $this->assertCount(13, $contentPlaceholders, 'It should return 13 placeholder');
+    }
+
+    /**
+     * Test that adjacent placeholders without space between them are extracted correctly.
+     */
+    public function testExtractAdjacentPlaceholders()
+    {
+        $registry = new Registry();
+        $extractor = new Extractor($registry);
+
+        $content = "{{placeholder_a}}{{placeholder_b}}";
+        list($contentPlaceholders, $returnedContent) = $extractor->extractIgnoringRegistry($content);
+
+        $this->assertCount(2, $contentPlaceholders, 'It should extract 2 adjacent placeholders');
+        $this->assertEquals('placeholder_a', $contentPlaceholders[0]->getName());
+        $this->assertEquals('placeholder_b', $contentPlaceholders[1]->getName());
+    }
+
+    /**
+     * Test placeholders at exact content boundaries (start and end).
+     */
+    public function testExtractPlaceholderAtBoundaries()
+    {
+        $registry = new Registry();
+        $registry->registerPlaceholderName('start', function () {
+            return new TestPlaceholder('start');
+        });
+        $registry->registerPlaceholderName('end', function () {
+            return new TestPlaceholder('end');
+        });
+        $extractor = new Extractor($registry);
+
+        // Placeholder at start
+        $content = "{{start}} some text";
+        list($contentPlaceholders, , $returnedContent) = $extractor->extract($content);
+        $this->assertCount(1, $contentPlaceholders, 'It should extract placeholder at start');
+
+        // Placeholder at end
+        $content = "some text {{end}}";
+        list($contentPlaceholders, , $returnedContent) = $extractor->extract($content);
+        $this->assertCount(1, $contentPlaceholders, 'It should extract placeholder at end');
+
+        // Only placeholder (no surrounding text)
+        $content = "{{start}}";
+        list($contentPlaceholders, , $returnedContent) = $extractor->extract($content);
+        $this->assertCount(1, $contentPlaceholders, 'It should extract lone placeholder');
+    }
+
+    /**
+     * Test extraction with newlines in attribute values.
+     * Note: The lexer doesn't support newlines within attribute values.
+     */
+    public function testExtractWithNewlinesInAttributes()
+    {
+        $registry = new Registry();
+        $extractor = new Extractor($registry);
+
+        // URL-encoded newlines work
+        $content = "{{my_test_item attr=\"value%0Awith%0Anewlines\"}}";
+        list($contentPlaceholders, $returnedContent) = $extractor->extractIgnoringRegistry($content);
+
+        $this->assertCount(1, $contentPlaceholders, 'It should extract placeholder with URL-encoded newlines in attribute');
+        // Verify the attribute value is decoded
+        $attrs = $contentPlaceholders[0]->getAttributes();
+        $this->assertEquals("value\nwith\nnewlines", $attrs['attr'], 'URL-encoded newlines should be decoded');
+    }
+
+    /**
+     * Test extraction with spaces (whitespace) around placeholder name.
+     */
+    public function testExtractWithWhitespaceAroundName()
+    {
+        $registry = new Registry();
+        $extractor = new Extractor($registry);
+
+        // Spaces around name are supported
+        $content = "{{  my_test_item  }}";
+        list($contentPlaceholders, $returnedContent) = $extractor->extractIgnoringRegistry($content);
+
+        $this->assertCount(1, $contentPlaceholders, 'It should extract placeholder with spaces around name');
+        $this->assertEquals('my_test_item', $contentPlaceholders[0]->getName());
+    }
+
+    /**
+     * Test stripPlaceholders with loop content.
+     */
+    public function testStripPlaceholdersWithLoopContent()
+    {
+        $registry = new Registry();
+        $extractor = new Extractor($registry);
+
+        $content = "Some {{loop_placeholder}}inner content{{end_loop_placeholder}} text";
+        $strippedContent = $extractor->stripPlaceholders($content);
+
+        $this->assertStringNotContainsString('{{loop_placeholder}}', $strippedContent, 'Loop placeholder should be stripped');
+        $this->assertStringNotContainsString('{{end_loop_placeholder}}', $strippedContent, 'End tag should be stripped');
+    }
+
+    /**
+     * Test extraction when end tag has wrong name (mismatch).
+     */
+    public function testExtractWrongEndTagName()
+    {
+        $registry = new Registry();
+        $extractor = new Extractor($registry);
+
+        // This should handle the case where end tag doesn't match open tag
+        $content = "{{a}}content{{end_b}}";
+        list($contentPlaceholders, $returnedContent) = $extractor->extractIgnoringRegistry($content);
+
+        // The extractor should still parse what it can
+        $this->assertIsArray($contentPlaceholders);
+    }
+
+    /**
+     * Test extractIgnoringRegistry with multiple callbacks.
+     */
+    public function testExtractIgnoringRegistryMultiplePlaceholders()
+    {
+        $registry = new Registry();
+        $extractor = new Extractor($registry);
+
+        $content = "{{first}} middle {{second}} end";
+        $replacedNames = [];
+
+        list($contentPlaceholders, $returnedContent) = $extractor->extractIgnoringRegistry(
+            $content,
+            function (ContentPlaceholder $p) use (&$replacedNames) {
+                $replacedNames[] = $p->getName();
+                return 'REPLACED_' . $p->getName();
+            }
+        );
+
+        $this->assertCount(2, $contentPlaceholders, 'Should extract 2 placeholders');
+        $this->assertContains('first', $replacedNames, 'Should have extracted first placeholder');
+        $this->assertContains('second', $replacedNames, 'Should have extracted second placeholder');
+        $this->assertEquals('REPLACED_first middle REPLACED_second end', $returnedContent, 'Content should have replacements');
+    }
+
+    /**
+     * Test that placeholder with numeric-only name works.
+     */
+    public function testExtractPlaceholderWithNumericName()
+    {
+        $registry = new Registry();
+        $registry->registerPlaceholderName('123', function () {
+            return new TestPlaceholder('123');
+        });
+        $extractor = new Extractor($registry);
+
+        $content = "{{123}}";
+        list($contentPlaceholders, $instancePlaceholders, $returnedContent) = $extractor->extract($content);
+
+        $this->assertCount(1, $contentPlaceholders, 'Should extract numeric placeholder name');
+    }
+
+    /**
+     * Test extraction with very long placeholder name.
+     */
+    public function testExtractVeryLongPlaceholderName()
+    {
+        $registry = new Registry();
+        $longName = str_repeat('a', 200);
+        $registry->registerPlaceholderName($longName, function () use ($longName) {
+            return new TestPlaceholder($longName);
+        });
+        $extractor = new Extractor($registry);
+
+        $content = "{{{$longName}}}";
+        list($contentPlaceholders, $instancePlaceholders, $returnedContent) = $extractor->extract($content);
+
+        $this->assertCount(1, $contentPlaceholders, 'Should extract long placeholder name');
+        $this->assertEquals($longName, $contentPlaceholders[0]->getName(), 'Name should match');
+    }
+
+    /**
+     * Test extraction with many attributes.
+     */
+    public function testExtractManyAttributes()
+    {
+        $registry = new Registry();
+        $extractor = new Extractor($registry);
+
+        $attrs = [];
+        for ($i = 0; $i < 20; $i++) {
+            $attrs[] = "attr{$i}=\"value{$i}\"";
+        }
+        $content = "{{my_test_item " . implode(' ', $attrs) . "}}";
+
+        list($contentPlaceholders, $returnedContent) = $extractor->extractIgnoringRegistry($content);
+
+        $this->assertCount(1, $contentPlaceholders, 'Should extract placeholder with many attributes');
+        $this->assertCount(20, $contentPlaceholders[0]->getAttributes(), 'Should have 20 attributes');
     }
 
 

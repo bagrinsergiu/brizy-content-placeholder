@@ -79,10 +79,16 @@ class Replacer
     {
         $replacements = [];  // uid => value associative array for strtr
 
+
+        $values = [];
         foreach ($contentPlaceholders as $index => $contentPlaceholder) {
             try {
                 $instancePlaceholder = $instancePlaceholders[$index] ?? null;
-
+                $iUid = $instancePlaceholder->getUid();
+//                if(isset($values[$iUid])) {
+//                     $replacements[$contentPlaceholder->getUid()] = $values[$iUid];
+//                     continue;
+//                } else
                 // Compute value first, only add to map on success
                 if ($instancePlaceholder) {
                     $value = $instancePlaceholder->getValue($context, $contentPlaceholder);
@@ -96,7 +102,7 @@ class Replacer
                     $replacementValue = '';
                 }
 
-                $replacements[$contentPlaceholder->getUid()] = $replacementValue;
+                $replacements[$contentPlaceholder->getUid()] = $values[$iUid] = $replacementValue;
 
             } catch (\Exception $e) {
                 if ($this->logger) {

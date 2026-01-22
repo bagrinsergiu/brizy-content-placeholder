@@ -11,10 +11,15 @@ class TestPlaceholder implements PlaceholderInterface
      * @var null
      */
     static private $supportedPlaceholder;
+    /**
+     * @var null
+     */
+    private $valueCallback;
 
-    public function __construct($supportedPlaceholder = 'placeholder')
+    public function __construct($supportedPlaceholder = 'placeholder', $valueCallback = null)
     {
         self::$supportedPlaceholder = $supportedPlaceholder;
+        $this->valueCallback = $valueCallback;
     }
 
     public function getConfigStructure()
@@ -52,6 +57,10 @@ class TestPlaceholder implements PlaceholderInterface
      */
     public function getValue(ContextInterface $context, ContentPlaceholder $placeholder)
     {
+        if(is_callable($this->valueCallback)){
+            return $this->valueCallback($this, $context, $placeholder);
+        }
+
         return 'placeholder_value';
     }
 
@@ -99,7 +108,7 @@ class TestPlaceholder implements PlaceholderInterface
      */
     public function getUid()
     {
-        return md5(serialize($this));
+        return md5(self::$supportedPlaceholder);
     }
 
     public function getVaryAttributes() {
