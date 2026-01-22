@@ -512,4 +512,34 @@ class ReplacerTest extends TestCase
             'Special characters should be preserved'
         );
     }
+    public function testExtractFromBigHtml5()
+    {
+
+        $content = file_get_contents('/opt/project/tests/data/user_case16.html');
+        $registry = new Registry();
+        $extractor = new Extractor($registry);
+
+        $t = microtime(true);
+        list($contentPlaceholders, $content) = $extractor->extractIgnoringRegistry($content);
+        echo "Content placeholder count: " . count($contentPlaceholders) . "\n";
+        echo "Extract time: " . (microtime(true) - $t) . "s\n";
+
+        $t = microtime(true);
+
+        $toReplaceWithValues = [];
+        $toReplace = [];
+        foreach ($contentPlaceholders as $i => $contentPlaceholder) {
+            $toReplaceWithValues[$contentPlaceholder->getUid()] = md5($contentPlaceholder->getUid());
+            //usleep(10000);
+        }
+
+        $content = strtr($content, $toReplaceWithValues);
+
+        echo "Replace time: " . (microtime(true) - $t) . "s\n";
+        $this->assertCount(715, $contentPlaceholders, 'It should return 50 placeholder');
+        foreach( $toReplaceWithValues as $uid => $value ) {
+            $this->assertStringNotContainsString($uid, $content, 'It should return the content with replaced placeholders');
+        }
+
+    }
 }
