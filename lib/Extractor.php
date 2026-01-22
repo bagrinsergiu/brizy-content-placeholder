@@ -13,7 +13,8 @@ use Psr\Log\LoggerInterface;
 final class Extractor implements ExtractorInterface
 {
     const ATTRIBUTE_REGEX = "/((?<attr_name>\w+)(?<array>\[(?<array_key>\w+)?\])?)\s*=\s*(?<quote>'|\"|\&quot;|\&apos;|\&#x27;)(?<attr_value>.*?)(\g{quote})(!?\s|$)/mi";
-    private $SIMPLE_PLACEHOLDERS = [];
+    private static $pcreConfigured = false;
+    private static $lexer = null;
 
     /**
      * @var RegistryInterface
@@ -33,53 +34,37 @@ final class Extractor implements ExtractorInterface
      */
     public function __construct($registry, $logger = null)
     {
-        @ini_set('pcre.backtrack_limit', 9000000);
+        if (!self::$pcreConfigured) {
+            @ini_set('pcre.backtrack_limit', 9000000);
+            self::$pcreConfigured = true;
+        }
         $this->registry = $registry;
         $this->logger = $logger;
     }
 
     public function stripPlaceholders($content)
     {
-        list($contentPlaceholders, $returnedContent) = $this->extractIgnoringRegistry($content);
-
-        foreach ($contentPlaceholders as $i => $placeholder) {
-            $placeholderString = $placeholder->getPlaceholder();
-            $pos = strpos($content, $placeholderString);
-
-            $length = strlen($placeholderString);
-
-            if ($pos !== false) {
-                $content = substr_replace($content, '', $pos, $length);
+        list($contentPlaceholders, $returnedContent) = $this->extractIgnoringRegistry(
+            $content,
+            function (ContentPlaceholder $placeholder) {
+                return '';  // Replace all placeholders with empty string
             }
-        }
+        );
 
-        return $content;
-
+        return $returnedContent;
     }
 
     public function extract($content)
     {
         $tokens = $this->extractTokens($content);
-        $placeholders = [];
-        for ($i = 0; $i < count($tokens); $i++) {
-            $token = $tokens[$i];
-            $name = $token->getName();
-            switch ($name) {
-                case 'T_PLACEHOLDER':
-                    list($placeholder, $i) = $this->extractPlaceholder($tokens, $i, $content);
-                    $placeholders[] = $placeholder;
-                    break;
-            }
-        }
+        $placeholders = $this->extractPlaceholdersFromTokens($tokens);
+
         $contentPlaceholders = [];
         $placeholderInstances = [];
-        foreach ($placeholders as $i => $placeholder) {
-            $instance = $this->registry->getPlaceholderSupportingName($placeholder['name']);
-            // ignore unknown placeholders
-            if (!$instance) {
-                continue;
-            }
+        $searchArray = [];      // Collect all search strings for batched replacement
+        $replaceArray = [];     // Collect all replacement UIDs for batched replacement
 
+        foreach ($placeholders as $i => $placeholder) {
             $tmpPlaceholder = new ContentPlaceholder(
                 $placeholder['name'],
                 $placeholder['original'],
@@ -88,20 +73,27 @@ final class Extractor implements ExtractorInterface
             );
             $pHash = $tmpPlaceholder->getUid();
 
+            $instance = $this->registry->getPlaceholderSupportingName($placeholder['name']);
+            // ignore unknown placeholders
+            if (!$instance) {
+                continue;
+            }
+
             $placeholderInstances[$pHash] = $instance;
             $contentPlaceholders[$pHash] = $tmpPlaceholder;
 
-            $pos = strpos($content, $contentPlaceholders[$pHash]->getPlaceholder());
+            // Build arrays for batched replacement (O(n) instead of O(n×m))
+            $searchArray[] = $tmpPlaceholder->getPlaceholder();
+            $replaceArray[] = $pHash;
+        }
 
-            $length = strlen($contentPlaceholders[$pHash]->getPlaceholder());
-
-            if ($pos !== false) {
-                $content = substr_replace($content, $pHash, $pos, $length);
-            }
+        // Single str_replace call - significantly faster than loop with strpos + substr_replace
+        if (!empty($searchArray)) {
+            $content = str_replace($searchArray, $replaceArray, $content);
         }
 
         // transform placeholder wrappers to real placeholders
-        list($_contentPlaceholders,$_placeholderInstances) = $this->transformPlaceholderWrappersToRealRegisteredPlaceholders($contentPlaceholders,$placeholderInstances);
+        list($_contentPlaceholders, $_placeholderInstances) = $this->transformPlaceholderWrappersToRealRegisteredPlaceholders($contentPlaceholders, $placeholderInstances);
 
         return array($_contentPlaceholders, $_placeholderInstances, $content);
     }
@@ -115,19 +107,12 @@ final class Extractor implements ExtractorInterface
         }
 
         $tokens = $this->extractTokens($content);
+        $placeholders = $this->extractPlaceholdersFromTokens($tokens);
 
-        $placeholders = [];
-        for ($i = 0; $i < count($tokens); $i++) {
-            $token = $tokens[$i];
-            $name = $token->getName();
-            switch ($name) {
-                case 'T_PLACEHOLDER':
-                    list($placeholder, $i) = $this->extractPlaceholder($tokens, $i, $content);
-                    $placeholders[] = $placeholder;
-                    break;
-            }
-        }
         $contentPlaceholders = [];
+        $searchArray = [];      // Collect all search strings for batched replacement
+        $replaceArray = [];     // Collect all replacement strings for batched replacement
+
         foreach ($placeholders as $i => $placeholder) {
             $tP = new ContentPlaceholder(
                 $placeholder['name'],
@@ -139,14 +124,14 @@ final class Extractor implements ExtractorInterface
             $pHash = $tP->getUid();
             $contentPlaceholders[$pHash] = $tP;
 
-            $pos = strpos($content, $contentPlaceholders[$pHash]->getPlaceholder());
+            // Build arrays for batched replacement (O(n) instead of O(n×m))
+            $searchArray[] = $tP->getPlaceholder();
+            $replaceArray[] = $callback($tP);
+        }
 
-            $length = strlen($contentPlaceholders[$pHash]->getPlaceholder());
-
-            if ($pos !== false) {
-                $replace = $callback($tP);
-                $content = substr_replace($content, $replace, $pos, $length);
-            }
+        // Single str_replace call - significantly faster than loop with strpos + substr_replace
+        if (!empty($searchArray)) {
+            $content = str_replace($searchArray, $replaceArray, $content);
         }
 
         // transform placeholder wrappers to real placeholders
@@ -155,60 +140,8 @@ final class Extractor implements ExtractorInterface
         return array($_contentPlaceholders, $content);
     }
 
-    private function extractPlaceholder(array $tokens, $start = 0, $content = '')
-    {
-        $continueIndex = $start;
-        $token = $tokens[$start];
-        $count = count($tokens);
-        $placeholder = $this->getPlaceholderFromToken($token);
-        if (strpos($content, "end_{$placeholder['name']}") === false) {
-            return [$placeholder, $continueIndex];
-        }
-
-        // check if the placeholder has an end_placeholder
-        $placeholderContent = '';
-
-
-        for ($i = $start + 1; $i < $count; $i++) {
-            $token = $tokens[$i];
-            $name = $token->getName();
-            switch ($name) {
-                case 'T_PLACEHOLDER':
-                    $pName = $this->getPlaceholderTokenValue($token);
-                    if ($pName == $placeholder['name']) {
-                        // here we have recursive placeholders
-                        list($aPlaceholder, $i) = $this->extractPlaceholder($tokens, $i, $content);
-                        $placeholderContent .= $aPlaceholder['original'];
-                    } else {
-                        $placeholderContent .= $token->getValue();
-                    }
-                    //$continueIndex = $i;
-                    break;
-                case 'T_END_PLACEHOLDER':
-                    $pName = $this->getPlaceholderTokenValue($token);
-                    if ($pName == "end_{$placeholder['name']}") {
-                        $placeholder['content'] = $placeholderContent;
-                        $placeholder['original'] .= $placeholderContent . $token->getValue();
-
-                        return [$placeholder, $i];
-                    } else {
-                        $placeholderContent .= $token->getValue();
-                    }
-                    // $continueIndex = $i;
-                    break;
-                default:
-                    $placeholderContent .= $token->getValue();
-                    //$continueIndex = $i;
-                    break;
-            }
-        }
-
-        return [$placeholder, $continueIndex];
-    }
-
     /**
      * @param array $contentPlaceholders
-     * @param $callback
      * @return array
      */
     protected function transformPlaceholderWrappersToRealPlaceholders(array $contentPlaceholders): array
@@ -227,8 +160,6 @@ final class Extractor implements ExtractorInterface
                     $ps->setAttributes(array_merge($ps->getAttributes(), $attrAray));
                     $ps->setPlaceholder($ps->buildPlaceholder(true));
                     $_contentPlaceholders[] = $ps;
-                } else {
-                    $t = 0;
                 }
             } else {
                 $_contentPlaceholders[] = $placeholder;
@@ -261,8 +192,6 @@ final class Extractor implements ExtractorInterface
                     $ps->setPlaceholder($ps->buildPlaceholder(true));
                     $_contentPlaceholders[] = $ps;
                     $_placeholderInstances[] = $psi;
-                } else {
-                    $t = 0;
                 }
             } else {
                 $_contentPlaceholders[] = $placeholder;
@@ -271,38 +200,6 @@ final class Extractor implements ExtractorInterface
         }
         return [$_contentPlaceholders, $_placeholderInstances];
     }
-
-    private function searchForPlaceholder($tokens, $placeholderName, $start = 0)
-    {
-        $count = count($tokens);
-        for ($i = $start; $i < $count; $i++) {
-            $token = $tokens[$i];
-            $name = $token->getName();
-            switch ($name) {
-                case 'T_END_PLACEHOLDER':
-                case 'T_PLACEHOLDER':
-                    $pName = $this->getPlaceholderTokenValue($token);
-                    if ($pName == $placeholderName) {
-                        return $i;
-                    }
-                    break;
-            }
-        }
-
-        return false;
-    }
-
-    private function collectContent($tokens, $start, $end)
-    {
-        $placeholderContent = '';
-        for ($i = $start; $i < $end; $i++) {
-            $token = $tokens[$i];
-            $placeholderContent .= $token->getValue();
-        }
-
-        return $placeholderContent;
-    }
-
 
     private function getPlaceholderFromToken($token)
     {
@@ -316,18 +213,164 @@ final class Extractor implements ExtractorInterface
 
     private function extractTokens($content)
     {
-        $lexer = new Lexer([
-            'T_END_PLACEHOLDER' => '{{\s*(?<placeholderName>end_.*?)\s*}}',
-            'T_PLACEHOLDER' => "{{\s*(?<placeholderName>.[^\s]+?)(?:\s(?<placeholderAttrs>.[^}}]+?))?\s*}}",
-            'T_TEXT' => '(?<=}}).*?(?={{)|.*?(?={{)|(?<=}}).*|.*',
-        ]);
+        if (self::$lexer === null) {
+            self::$lexer = new Lexer([
+                'T_END_PLACEHOLDER' => '{{\s*(?<placeholderName>end_.*?)\s*}}',
+                'T_PLACEHOLDER' => "{{\s*(?<placeholderName>.[^\s]+?)(?:\s(?<placeholderAttrs>.[^}}]+?))?\s*}}",
+                'T_TEXT' => '(?<=}}).*?(?={{)|.*?(?={{)|(?<=}}).*|.*',
+            ]);
+        }
 
-        /**
-         * @var \Generator $tokens ;
-         */
-        $tokens = $lexer->lex($content);
+        return iterator_to_array(self::$lexer->lex($content));
+    }
 
-        return iterator_to_array($tokens);
+    /**
+     * Pre-computes which placeholder token indices have matching end tags.
+     * Single O(n) pass instead of O(n) per placeholder lookup.
+     *
+     * @param array $tokens The lexer tokens
+     * @return array Set of token indices (as keys) that have matching end tags
+     */
+    private function findPlaceholdersWithEndTags(array $tokens): array
+    {
+        $hasEndTag = [];    // Token indices that have matching end tags
+        $openStacks = [];   // name => [indices] - stack of open placeholder indices by name
+
+        $count = count($tokens);
+        for ($i = 0; $i < $count; $i++) {
+            $token = $tokens[$i];
+            $type = $token->getName();
+
+            if ($type === 'T_PLACEHOLDER') {
+                $name = $this->getPlaceholderTokenValue($token);
+                if (!isset($openStacks[$name])) {
+                    $openStacks[$name] = [];
+                }
+                $openStacks[$name][] = $i;
+            } elseif ($type === 'T_END_PLACEHOLDER') {
+                $endName = $this->getPlaceholderTokenValue($token);
+                $baseName = substr($endName, 4); // Remove "end_" prefix
+
+                if (!empty($openStacks[$baseName])) {
+                    // Match with the most recent (innermost) placeholder of this name
+                    $matchedIndex = array_pop($openStacks[$baseName]);
+                    $hasEndTag[$matchedIndex] = true;
+                }
+            }
+        }
+
+        return $hasEndTag;
+    }
+
+    /**
+     * Extracts all placeholders from tokens using a single-pass stack-based algorithm.
+     * Uses arrays for content building (O(n) with implode) instead of string concatenation (O(n^2)).
+     *
+     * @param array $tokens The lexer tokens
+     * @return array Array of extracted placeholder data
+     */
+    private function extractPlaceholdersFromTokens(array $tokens): array
+    {
+        // Pre-compute which placeholders have end tags in O(n)
+        $hasEndTag = $this->findPlaceholdersWithEndTags($tokens);
+
+        $placeholders = [];
+        $stack = [];  // Stack of currently open placeholders
+        $tokenCount = count($tokens);
+
+        for ($i = 0; $i < $tokenCount; $i++) {
+            $token = $tokens[$i];
+            $tokenType = $token->getName();
+
+            switch ($tokenType) {
+                case 'T_PLACEHOLDER':
+                    $placeholder = $this->getPlaceholderFromToken($token);
+
+                    // O(1) lookup instead of O(n) scan
+                    if (isset($hasEndTag[$i])) {
+                        // Push onto stack with content array for efficient building
+                        $stack[] = [
+                            'placeholder' => $placeholder,
+                            'contentParts' => [],  // Array for O(n) content building
+                        ];
+                    } else {
+                        // No end tag - treat as simple placeholder
+                        if (!empty($stack)) {
+                            // Add to parent's content
+                            $stack[count($stack) - 1]['contentParts'][] = $token->getValue();
+                        } else {
+                            // Top-level simple placeholder
+                            $placeholders[] = $placeholder;
+                        }
+                    }
+                    break;
+
+                case 'T_END_PLACEHOLDER':
+                    $endName = $this->getPlaceholderTokenValue($token);
+                    // Extract the base name (remove "end_" prefix)
+                    $baseName = substr($endName, 4);
+
+                    // Find matching placeholder on stack (search from top)
+                    $matchIndex = -1;
+                    for ($j = count($stack) - 1; $j >= 0; $j--) {
+                        if ($stack[$j]['placeholder']['name'] === $baseName) {
+                            $matchIndex = $j;
+                            break;
+                        }
+                    }
+
+                    if ($matchIndex >= 0) {
+                        // Pop the matched placeholder and any unclosed ones above it
+                        $matched = $stack[$matchIndex];
+                        $content = implode('', $matched['contentParts']);
+
+                        // Build final placeholder data
+                        $finalPlaceholder = $matched['placeholder'];
+                        $finalPlaceholder['content'] = $content;
+                        $finalPlaceholder['original'] .= $content . $token->getValue();
+
+                        // Remove matched and everything above from stack
+                        array_splice($stack, $matchIndex);
+
+                        if (!empty($stack)) {
+                            // Add completed placeholder to parent's content
+                            $stack[count($stack) - 1]['contentParts'][] = $finalPlaceholder['original'];
+                        } else {
+                            // Top-level placeholder complete
+                            $placeholders[] = $finalPlaceholder;
+                        }
+                    } else {
+                        // Unmatched end tag - treat as text
+                        if (!empty($stack)) {
+                            $stack[count($stack) - 1]['contentParts'][] = $token->getValue();
+                        }
+                    }
+                    break;
+
+                default:
+                    // T_TEXT or other tokens
+                    if (!empty($stack)) {
+                        // Add to current placeholder's content
+                        $stack[count($stack) - 1]['contentParts'][] = $token->getValue();
+                    }
+                    break;
+            }
+        }
+
+        // Handle any unclosed placeholders remaining on stack
+        // Pop them as simple placeholders (without content)
+        while (!empty($stack)) {
+            $unclosed = array_pop($stack);
+            if (!empty($stack)) {
+                // Add to parent's content as-is
+                $stack[count($stack) - 1]['contentParts'][] = $unclosed['placeholder']['original'];
+            } else {
+                // Top-level unclosed placeholder
+                $placeholders[] = $unclosed['placeholder'];
+            }
+        }
+
+        return $placeholders;
     }
 
     private function getPlaceholderAttrTokenValue(Composite $token)
@@ -381,3 +424,4 @@ final class Extractor implements ExtractorInterface
     }
 
 }
+

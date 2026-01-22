@@ -213,32 +213,29 @@ class ReplacerTest extends TestCase
 
     public function testExtractFromBigHtml4()
     {
+
         $content = file_get_contents('/opt/project/tests/data/user_case15.html');
         $registry = new Registry();
         $extractor = new Extractor($registry);
 
         $t = microtime(true);
         list($contentPlaceholders, $content) = $extractor->extractIgnoringRegistry($content);
+        echo "Extract time: " . (microtime(true) - $t) . "s\n";
 
-
-        $stats = [];
-        foreach ($contentPlaceholders as $i => $contentPlaceholder) {
-            if (!isset($stats[$contentPlaceholder->getPlaceholder()])) $stats[$contentPlaceholder->getPlaceholder()] = 0;
-            $stats[$contentPlaceholder->getPlaceholder()]++;
-        }
+        $t = microtime(true);
 
         $toReplaceWithValues = [];
         $toReplace = [];
         foreach ($contentPlaceholders as $i => $contentPlaceholder) {
             $toReplace[] = $contentPlaceholder->getUid();
             $toReplaceWithValues[] = md5($contentPlaceholder->getUid());
-            usleep(10000);
+            usleep(1000);
         }
 
         $content = str_replace($toReplace, $toReplaceWithValues, $content);
 
 
-        echo "Extract time: " . (microtime(true) - $t) . "s\n";
-        $this->assertCount(50, $contentPlaceholders, 'It should return 50 placeholder');
+        echo "Replace time: " . (microtime(true) - $t) . "s\n";
+        $this->assertCount(715, $contentPlaceholders, 'It should return 50 placeholder');
     }
 }
