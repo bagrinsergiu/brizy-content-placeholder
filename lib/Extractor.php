@@ -89,9 +89,9 @@ final class Extractor implements ExtractorInterface
         }
 
         // transform placeholder wrappers to real placeholders
-        list($_contentPlaceholders, $_placeholderInstances) = $this->transformPlaceholderWrappersToRealRegisteredPlaceholders($contentPlaceholders, $placeholderInstances);
+        //list($_contentPlaceholders, $_placeholderInstances) = $this->transformPlaceholderWrappersToRealRegisteredPlaceholders($contentPlaceholders, $placeholderInstances);
 
-        return array($_contentPlaceholders, $_placeholderInstances, $content);
+        return array(array_values($contentPlaceholders), array_values($placeholderInstances), $content);
     }
 
     public function extractIgnoringRegistry($content, $callback = null)
@@ -127,9 +127,9 @@ final class Extractor implements ExtractorInterface
         }
 
         // transform placeholder wrappers to real placeholders
-        $_contentPlaceholders = $this->transformPlaceholderWrappersToRealPlaceholders($contentPlaceholders);
+        //$_contentPlaceholders = $this->transformPlaceholderWrappersToRealPlaceholders($contentPlaceholders);
 
-        return array($_contentPlaceholders, $content);
+        return array(array_values($contentPlaceholders), $content);
     }
 
     /**
