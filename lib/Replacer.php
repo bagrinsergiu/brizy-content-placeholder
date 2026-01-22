@@ -34,7 +34,7 @@ class Replacer
      *
      * @param $registry
      */
-    public function __construct($registry, LoggerInterface $logger = null)
+    public function __construct($registry, $logger = null)
     {
         $this->registry = $registry;
         $this->logger = $logger;
