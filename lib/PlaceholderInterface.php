@@ -25,7 +25,7 @@ interface PlaceholderInterface
     /**
      * @return PlaceholderDependency[]
      */
-    public function getDependencies(): array;
+    public function getDependencies(ContextInterface $context, ContentPlaceholder $placeholder): array;
 
     /**
      * It should return a unique identifier of the placeholder

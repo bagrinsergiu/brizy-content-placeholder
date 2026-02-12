@@ -12,4 +12,6 @@ interface ContextInterface
      * @return mixed
      */
     public function afterExtract($contentPlaceholders, $instancePlaceholders, $contentAfterExtractor);
+
+    public function beforeReplace($contentPlaceholders, $instancePlaceholders);
 }

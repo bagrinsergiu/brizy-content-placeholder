@@ -6,11 +6,13 @@ class PlaceholderDependency
 {
     private $type;
     private $identifier;
+    private $metadata;
 
-    public function __construct($type, $identifier)
+    public function __construct($type, $identifier, array $metadata = [])
     {
         $this->type = $type;
         $this->identifier = $identifier;
+        $this->metadata = $metadata;
     }
 
     /**
@@ -43,5 +45,13 @@ class PlaceholderDependency
     public function setIdentifier($identifier): void
     {
         $this->identifier = $identifier;
+    }
+
+    /**
+     * @return array
+     */
+    public function getMetadata()
+    {
+        return $this->metadata;
     }
 }

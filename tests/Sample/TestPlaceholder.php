@@ -115,9 +115,8 @@ class TestPlaceholder implements PlaceholderInterface
         return [];
     }
 
-    public function getDependencies(): array
+    public function getDependencies(ContextInterface $context, ContentPlaceholder $placeholder): array
     {
-        // TODO: Implement getDependencies() method.
         return [];
     }
 }

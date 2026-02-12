@@ -65,6 +65,7 @@ class Replacer
         $context->afterExtract($contentPlaceholders, $instancePlaceholders, $contentAfterExtractor);
 
         if ($contentPlaceholders && $instancePlaceholders) {
+            $context->beforeReplace($contentPlaceholders, $instancePlaceholders);
             $content = $this->replaceWithExtractedData($contentPlaceholders, $instancePlaceholders, $contentAfterExtractor, $context);
         }
         return $content;

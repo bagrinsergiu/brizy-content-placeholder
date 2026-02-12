@@ -26,7 +26,7 @@ abstract class AbstractPlaceholder implements PlaceholderInterface, \Serializabl
         return isset($attributes[PlaceholderInterface::FALLBACK_KEY]) ? $attributes[PlaceholderInterface::FALLBACK_KEY] : '';
     }
 
-    public function getDependencies(): array
+    public function getDependencies(ContextInterface $context, ContentPlaceholder $placeholder): array
     {
         return [];
     }

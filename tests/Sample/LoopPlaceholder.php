@@ -119,10 +119,8 @@ class LoopPlaceholder implements PlaceholderInterface
         ];
     }
 
-    public function getDependencies(): array
+    public function getDependencies(ContextInterface $context, ContentPlaceholder $placeholder): array
     {
-        // TODO: Implement getDependencies() method.
-
         return [];
     }
 }
