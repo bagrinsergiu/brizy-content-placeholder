@@ -2,7 +2,7 @@
 
 namespace BrizyPlaceholders;
 
-abstract class AbstractPlaceholder implements PlaceholderInterface, \Serializable, \JsonSerializable
+abstract class AbstractPlaceholder implements PlaceholderInterface, \JsonSerializable
 {
     /**
      * It should return an unique identifier of the placeholder
@@ -66,27 +66,6 @@ abstract class AbstractPlaceholder implements PlaceholderInterface, \Serializabl
         );
     }
 
-    /**
-     * @return string
-     */
-    public function serialize()
-    {
-        return serialize($this->jsonSerialize());
-    }
-
-    /**
-     * @param string $data
-     */
-    public function unserialize($data)
-    {
-
-        $vars = unserialize($data);
-
-        foreach ($vars as $prop => $value) {
-            $this->$prop = $value;
-        }
-    }
-
     public function __serialize()
     {
         return $this->jsonSerialize();
@@ -95,12 +74,13 @@ abstract class AbstractPlaceholder implements PlaceholderInterface, \Serializabl
     public function __unserialize($data)
     {
         foreach ($data as $prop => $value) {
-            $this->$prop = $value;
+            if (property_exists($this, $prop)) {
+                $this->$prop = $value;
+            }
         }
     }
 
-    #[\ReturnTypeWillChange]
-    public function jsonSerialize()
+    public function jsonSerialize(): mixed
     {
         return get_object_vars($this);
     }
